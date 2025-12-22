@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Truth or Dare</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    height: 100vh;
+    background: linear-gradient(135deg, #7f7cff, #9ef0e3, #ff9acb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card {
+    width: 340px;
+    background: radial-gradient(circle at top, #2a0a4a, #0b0318);
+    border-radius: 20px;
+    padding: 24px;
+    color: white;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+
+  select, input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: none;
+    outline: none;
+    margin-bottom: 12px;
+  }
+
+  .player-board {
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 14px;
+    min-height: 24px;
+  }
+
+  .shuffle {
+    animation: flicker 0.08s infinite;
+  }
+
+  @keyframes flicker {
+    0% { opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { opacity: 0.3; }
+  }
+
+  .question {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 24px 0;
+    min-height: 90px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  button {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 999px;
+    border: none;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    color: white;
+    background: linear-gradient(135deg, #6f2cff, #b45cff);
+  }
+
+  button.secondary {
+    background: linear-gradient(135deg, #ff3d81, #ff7bb3);
+  }
+
+  button.full {
+    width: 100%;
+  }
+
+  .hidden {
+    display: none;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <!-- SETUP -->
+  <div id="setup">
+    <h2>Truth or Dare</h2>
+    <input id="p1" placeholder="Player 1 name">
+    <input id="p2" placeholder="Player 2 name">
+    <button class="full" onclick="startGame()">Start</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game" class="hidden">
+    <select id="level">
+      <option value="soft">Sensual</option>
+      <option value="spicy">Hot</option>
+      <option value="wild">Wild</option>
+    </select>
+
+    <div id="playerBoard" class="player-board">---</div>
+
+    <div id="question" class="question">
+      Click Roll to start
+    </div>
+
+    <button id="rollBtn" class="full" onclick="rollPlayer()">Roll</button>
+
+    <div id="choice" class="actions hidden">
+      <button onclick="showTruth()">Truth</button>
+      <button class="secondary" onclick="showDare()">Dare</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* DATA */
+  const data = {
+    soft: {
+      truth: [
+        "Apa bagian tubuhku yang paling membuatmu merasa tenang?",
+        "Apa memori ciuman pertama kita yang paling kamu ingat?",
+        "Apa jenis sentuhan non-seksual yang paling kamu sukai dariku?",
+        "Kapan kamu merasa paling dicintai olehku minggu ini?",
+        "Apa satu lagu yang liriknya mengingatkanmu pada kehidupan seks kita?",
+        "Apa hal paling seksi yang aku lakukan saat sedang bekerja/beraktivitas?",
+        "Seberapa penting foreplay bagimu dalam skala 1-10?",
+        "Apa pujian tentang fisikmu yang paling ingin kamu dengar dariku?",
+        "Jika kita bisa bercinta di sebuah film, film apa yang akan kamu pilih?",
+        "Apa aroma tubuhku yang paling membuatmu ingin memelukku?",
+        "Apa posisi tidur favoritmu saat kita bersama?",
+        "Apa hal pertama yang kamu pikirkan saat bangun tidur dan melihatku?",
+        "Pernahkah kamu memimpikan hal romantis tentangku semalam?",
+        "Apa pakaian tidurku yang paling kamu sukai?",
+        "Apa cara terbaikku untuk membuatmu merasa seksi?",
+        "Jika kita kencan malam ini, ke mana kamu ingin aku membawamu?",
+        "Apa satu kebiasaan kecilku yang diam-diam kamu anggap menggoda?",
+        "Apa bagian wajahku yang paling ingin kamu cium sekarang?",
+        "Apa jenis pelukan yang paling kamu sukai (dari belakang, erat, atau santai)?",
+        "Sebutkan satu hal yang ingin kamu pelajari tentang tubuhku.",
+        "Apa warna pakaian dalam yang menurutmu paling cocok untukku?",
+        "Bagaimana perasaanmu saat aku menggandeng tanganmu di depan umum?",
+        "Apa film romantis yang ingin kamu tonton bersamaku sambil berpelukan?",
+        "Berapa kali kamu ingin aku menciummu dalam sehari?",
+        "Apa satu hal yang kamu inginkan tapi malu untuk memintanya (hal ringan)?",
+        "Di mana tempat impianmu untuk kita berlibur berdua saja?",
+        "Apa momen di mana kamu merasa paling bangga memilikiku sebagai pasangan?",
+        "Apa jenis pijatan yang paling kamu butuhkan saat ini?",
+        "Apa kata-kata sayang yang paling membuat hatimu meleleh?",
+        "Jika kamu bisa mengganti namaku di kontak ponselmu dengan nama yang seksi, apa itu?"
+      ],
+      dare: [
+        "Berikan pijatan bahu selama 2 menit.",
+        "Tatap mataku selama 1 menit tanpa bicara sedikit pun.",
+        "Bisikkan 'Aku menginginkanmu' di telingaku dengan suara rendah.",
+        "Berikan ciuman lembut di setiap jari tanganku.",
+        "Gunakan ujung jarimu untuk membelai pipiku dengan sangat perlahan.",
+        "Berikan 10 kecupan di area wajahku (selain bibir).",
+        "Peluk aku dari belakang selama satu putaran permainan.",
+        "Sisir rambutku menggunakan jari-jarimu selama 1 menit.",
+        "Tuliskan 'I Love You' di punggungku menggunakan jarimu.",
+        "Cium telapak tanganku lalu letakkan di pipimu.",
+        "Duduklah di pangkuanku selama 1 menit.",
+        "Berikan pujian paling tulus tentang tubuhku.",
+        "Berikan ciuman di keningku yang berlangsung selama 10 detik.",
+        "Genggam tanganku dan letakkan di jantungmu.",
+        "Tunjukkan ekspresi wajahmu yang paling menggoda.",
+        "Berikan ciuman di hidungku.",
+        "Usap leher belakangku dengan lembut.",
+        "Katakan satu hal yang membuatmu jatuh cinta padaku hari ini.",
+        "Berikan pijatan tangan menggunakan losion atau minyak.",
+        "Buatkan aku minuman (teh/kopi) dan sajikan dengan ciuman.",
+        "Berikan ciuman di pelipis mataku.",
+        "Dansa lambat (slow dance) bersamaku tanpa musik selama 1 menit.",
+        "Biarkan aku menyandarkan kepala di bahumu sebentar.",
+        "Cium kedua pipiku bergantian.",
+        "Kirimi pesan teks seksi kepadaku meskipun kita sedang duduk bersebelahan.",
+        "Berikan pijatan kaki ringan selama 2 menit.",
+        "Bisikkan rahasia kecil yang manis di telingaku.",
+        "Berikan pelukan paling erat yang pernah kamu berikan.",
+        "Cium ujung hidungku dengan gemas.",
+        "Biarkan aku mengatur posisi dudukmu agar lebih nyaman di dekatku."
+      ]
+    },
+    spicy: {
+      truth: [
+        "Apa bagian tubuhku yang paling ingin kamu jelajahi malam ini?",
+        "Berikan skor 1-10 untuk kemampuan dirty talk-ku.",
+        "Apa fantasi seksual paling 'ringan' yang belum kita wujudkan?",
+        "Apa yang kamu rasakan saat aku menggigit bibir bawahmu?",
+        "Pernahkah kamu berfantasi tentangku saat sedang di kantor/luar rumah?",
+        "Apa posisi seks yang membuatmu merasa paling berkuasa?",
+        "Apa satu area sensitifmu yang belum pernah aku sentuh secara maksimal?",
+        "Lebih suka aku yang mulai duluan (inisiasi) atau kamu?",
+        "Apa pendapatmu tentang menggunakan penutup mata saat intim?",
+        "Apa satu hal yang aku lakukan di tempat tidur yang membuatmu 'gila'?",
+        "Seberapa sering kamu ingin kita mencoba tempat baru selain kasur?",
+        "Apa pakaian dalam favoritmu yang aku miliki?",
+        "Apa yang kamu pikirkan saat melihatku keluar dari kamar mandi hanya dengan handuk?",
+        "Berapa lama durasi foreplay yang menurutmu paling sempurna?",
+        "Apakah kamu suka jika aku menatap matamu saat kita intim?",
+        "Apa satu hal 'nakal' yang ingin kamu lakukan padaku di dapur?",
+        "Apa jenis sentuhan yang paling cepat membangkitkan gairahmu?",
+        "Bagaimana perasaanmu jika aku sedikit lebih agresif malam ini?",
+        "Apa film seksi yang pernah kamu tonton dan ingin kamu tiru adegannya?",
+        "Apa satu hal yang paling ingin kamu dengar dariku saat kita sedang panas?",
+        "Di mana bagian tubuhku yang paling ingin kamu beri 'tanda'?",
+        "Apakah kamu lebih suka gaya yang cepat atau yang sangat lambat dan intens?",
+        "Apa yang ada di pikiranmu saat aku membisikkan kata-kata kotor?",
+        "Apa bagian tubuhmu yang paling ingin kamu pamerkan padaku malam ini?",
+        "Apa satu hal yang belum pernah kita lakukan tapi kamu sudah melihatnya di internet?",
+        "Pernahkah kamu membayangkan kita melakukannya di dalam mobil?",
+        "Apa reaksi tubuhmu yang paling jujur saat aku mencium lehermu?",
+        "Apa satu perintah yang sangat ingin kamu berikan padaku sekarang?",
+        "Sebutkan satu mainan (toy) yang menurutmu menarik untuk dicoba.",
+        "Apa momen terseksi yang pernah kita lalui bersama?"
+      ],
+      dare: [
+        "Berikan ciuman leher (hickey) yang dalam di tempat pilihanmu.",
+        "Lepaskan satu kancing bajuku menggunakan gigi.",
+        "Berikan ciuman bibir (French kiss) selama 1 menit penuh.",
+        "Pijat paha bagian dalamku sedekat mungkin dengan area intim.",
+        "Biarkan aku membuka satu pakaianmu (pilihanmu).",
+        "Gunakan lidahmu untuk menelusuri garis telingaku.",
+        "Lakukan dirty talk tentang apa yang ingin kamu lakukan padaku 5 menit lagi.",
+        "Berikan ciuman panas di tulang selangka (collarbone).",
+        "Gigit lembut bibir bawahku dan tahan selama 5 detik.",
+        "Biarkan aku duduk di pangkuanmu dan tunjukkan cara mencium yang kamu mau.",
+        "Gunakan es batu untuk mengusap leherku (jika tersedia).",
+        "Buka bajumu sendiri dan biarkan aku menyentuh dadamu selama 1 menit.",
+        "Cium area pusarku dengan perlahan.",
+        "Tarik pinggangku hingga tubuh kita menempel tanpa celah.",
+        "Berikan pijatan punggung yang sensual menggunakan minyak/losion.",
+        "Gunakan jarimu untuk menelusuri bibirku sebelum menciumku.",
+        "Bisikkan satu kata yang menurutmu paling 'berbahaya' untuk didengar.",
+        "Berikan ciuman di belakang lututku.",
+        "Biarkan aku memberikan 'tanda' kecil di lehermu.",
+        "Lepaskan kaus kakiku menggunakan tanganmu dengan cara menggoda.",
+        "Tunjukkan padaku bagaimana kamu ingin aku menyentuhmu.",
+        "Berikan ciuman di pergelangan tangan bagian dalamku.",
+        "Tatap mataku sambil meraba pahamu sendiri di depanku.",
+        "Berikan ciuman di sepanjang garis bahuku.",
+        "Gunakan napas hangatmu untuk menggoda perutku.",
+        "Katakan dengan jujur bagian tubuhku yang paling ingin kamu cium sekarang.",
+        "Biarkan tanganku menjelajahi area di bawah bajumu selama 1 menit.",
+        "Berikan kecupan di setiap inci lenganku.",
+        "Tunjukkan ekspresi 'orgasme'-mu yang paling jujur.",
+        "Mintalah izin untuk mencium satu bagian tubuhku yang paling kamu inginkan."
+      ]
+    },
+    wild: {
+      truth: [
+        "Apa fantasi seksual paling liar yang pernah kamu miliki tentang orang asing?",
+        "Jika kita mencoba roleplay, siapa yang ingin kamu perankan?",
+        "Apa pendapat jujurmu tentang menonton video dewasa bersama?",
+        "Seberapa tertarik kamu dengan praktik BDSM ringan (seperti diikat)?",
+        "Apa satu hal yang kamu anggap 'terlarang' tapi diam-diam ingin kamu coba?",
+        "Pernahkah kamu membayangkan melakukan hubungan intim dengan aku di depan cermin?",
+        "Apa bagian tubuhku yang paling ingin kamu 'sembah' (body worship)?",
+        "Jika aku memberimu kendali penuh (dominasi), apa perintah pertamamu?",
+        "Apa rahasia seksual yang belum pernah kamu ceritakan kepada siapa pun?",
+        "Apa pendapatmu tentang melakukan hubungan intim di alam terbuka?",
+        "Seberapa besar keinginanmu untuk mencoba impact play (seperti spanking)?",
+        "Apa satu hal yang kamu anggap 'kotor' namun sangat merangsang?",
+        "Pernahkah kamu berfantasi tentang kita merekam sesi intim kita?",
+        "Apa suara yang paling ingin kamu dengar dariku saat aku mencapai puncak?",
+        "Apa satu posisi yang menurutmu sangat menantang tapi ingin dicoba?",
+        "Bagaimana perasaanmu jika aku menggunakan penutup mata padamu?",
+        "Apa pendapatmu tentang menggunakan makanan (cokelat/krim) di tubuh?",
+        "Berapa lama kamu bisa menahan diri sebelum benar-benar 'meledak'?",
+        "Apa satu hal yang kamu lihat di film dewasa yang menurutmu tidak masuk akal?",
+        "Apa bagian tubuhmu yang paling ingin aku eksplorasi dengan lidahku?",
+        "Sebutkan satu kata yang paling merangsang jika diucapkan di tempat tidur.",
+        "Pernahkah kamu merasa cemburu secara seksual dan itu malah membuatmu bergairah?",
+        "Apa fantasi power play impianmu?",
+        "Bagaimana menurutmu tentang mandi bersama dengan cara yang sangat seksi?",
+        "Apa satu hal yang bisa aku lakukan untuk membuatmu merasa 'tak berdaya' di bawahku?",
+        "Apa jenis pakaian dalam yang menurutmu paling 'nakal' yang pernah aku pakai?",
+        "Pernahkah kamu ingin mencoba sesi intim yang sangat cepat (quickie) di tempat umum?",
+        "Apa satu hal yang ingin kamu lakukan padaku tapi kamu takut aku akan menghakimimu?",
+        "Seberapa besar pengaruh musik terhadap gairahmu saat berhubungan?",
+        "Apa yang paling kamu inginkan untuk terjadi malam ini setelah permainan berakhir?"
+      ],
+      dare: [
+        "Tutup mataku dengan kain dan berikan kejutan di tubuhku selama 2 menit.",
+        "Lakukan striptease (tanggalkan pakaianmu hingga tersisa pakaian dalam saja).",
+        "Biarkan aku mengikat tanganmu menggunakan dasi/syal selama satu putaran.",
+        "Lakukan body worship: Cium seluruh tubuhku dari perut ke bawah (di luar pakaian).",
+        "Gunakan makanan (seperti cokelat atau madu) di kulitku dan bersihkan dengan lidahmu.",
+        "Berikan spanking (tepukan) ringan di area pilihanmu (atas izin).",
+        "Lakukan 'simulasi' posisi favoritmu padaku selama 1 menit (pakaian lengkap).",
+        "Bisikkan fantasi paling eksplisit yang pernah kamu bayangkan di telingaku.",
+        "Gunakan es batu untuk menelusuri area dadaku (jika tersedia).",
+        "Biarkan aku melakukan apa pun padamu selama 2 menit tanpa membalas.",
+        "Berikan ciuman di paha bagian dalam, sedekat mungkin dengan area sensitif.",
+        "Lepaskan semua pakaianmu (kecuali pakaian dalam) dan menarilah sedikit untukku.",
+        "Lakukan dirty talk paling provokatif yang bisa kamu pikirkan.",
+        "Biarkan aku menahan tanganmu di atas kepala saat kita berciuman panas.",
+        "Gunakan jarimu untuk memberikan rangsangan ringan di area intimku (di atas pakaian).",
+        "Tunjukkan satu posisi seks baru yang ingin kita coba malam ini.",
+        "Cium area bokongku dengan lembut.",
+        "Berikan gigitan kecil yang sedikit lebih berani di area bahuku.",
+        "Biarkan aku meraba seluruh tubuhmu dengan mata tertutup.",
+        "Lakukan sesi teasing tanpa boleh menyentuh area intim selama 2 menit.",
+        "Berikan ciuman di area selangkangan (di luar pakaian dalam).",
+        "Peragakan suara yang kamu keluarkan saat merasa sangat nikmat.",
+        "Biarkan aku mengatur gaya rambutmu dengan cara yang berantakan (seksi).",
+        "Gunakan jari atau lidahmu untuk menelusuri area sensitif di bawah baju.",
+        "Bisikkan satu kata kotor yang paling ingin kamu dengar dariku.",
+        "Biarkan aku memberikan perintah apa pun padamu selama 5 menit.",
+        "Berikan ciuman di area perut bawahku dengan perlahan.",
+        "Tunjukkan cara paling liar untuk melepaskan pakaian dalamku.",
+        "Lakukan kontak mata intens sambil tanganmu menyentuh area sensitif sendiri.",
+        "Hentikan permainan dan lakukan satu hal yang paling kalian berdua inginkan sekarang!"
+      ]
+    }
+  };
+
+  let players = [];
+
+  function startGame() {
+    const p1 = document.getElementById("p1").value.trim();
+    const p2 = document.getElementById("p2").value.trim();
+
+    if (!p1 || !p2) {
+      alert("Enter both names");
+      return;
+    }
+
+    players = [p1, p2];
+
+    // RESET UI STATE
+    document.getElementById("playerBoard").textContent = "---";
+    document.getElementById("question").textContent = "Click Roll to start";
+    document.getElementById("rollBtn").classList.remove("hidden");
+    document.getElementById("choice").classList.add("hidden");
+
+    document.getElementById("setup").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+  }
+
+  function rollPlayer() {
+    const board = document.getElementById("playerBoard");
+    const rollBtn = document.getElementById("rollBtn");
+    const choice = document.getElementById("choice");
+    const question = document.getElementById("question");
+
+    board.classList.add("shuffle");
+    question.textContent = "";
+
+    let count = 0;
+    const interval = setInterval(() => {
+      board.textContent = players[Math.floor(Math.random() * players.length)];
+      count++;
+
+      if (count > 15) {
+        clearInterval(interval);
+        board.classList.remove("shuffle");
+
+        rollBtn.classList.add("hidden");
+        choice.classList.remove("hidden");
+      }
+    }, 80);
+  }
+
+  function showTruth() {
+    showCard("truth");
+  }
+
+  function showDare() {
+    showCard("dare");
+  }
+
+  function showCard(type) {
+    const level = document.getElementById("level").value;
+    const list = data[level][type];
+
+    document.getElementById("question").textContent =
+      list[Math.floor(Math.random() * list.length)];
+
+    document.getElementById("choice").classList.add("hidden");
+    document.getElementById("rollBtn").classList.remove("hidden");
+  }
+</script>
+
+</body>
+</html>

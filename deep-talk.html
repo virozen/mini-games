@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  
+  <title>Intimacy Games</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      color: #fff;
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+    }
+    .card {
+      background: rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 32px 24px;
+      min-height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    button {
+      padding: 12px 32px;
+      border: none;
+      border-radius: 999px;
+      background: #ff6a88;
+      background: linear-gradient(135deg, #ff6a88, #ff99ac);
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:active { transform: scale(0.97); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Intimacy Games</h1>
+    <div id="card" class="card">
+      Klik tombol start untuk memulai
+    </div>
+    <button id="actionBtn">Start</button>
+  </div>
+
+  <script>
+    const questions = {
+      level1: [
+        "Pijat lembut bahuku selama 3 menit.",
+        "Letakkan kepalamu di dadaku, dengarkan detakku sebentar.",
+        "Sentuh wajahku seolah kamu baru pertama kali mengenalku.",
+        "Tatap mataku tanpa bicara selama 1 menit.",
+        "Pegang tanganku dan bisikkan sesuatu yang kamu sukai dariku.",
+        "Genggam wajahku dan beri ciuman lembut di dahi.",
+        "Peluk aku dari belakang dan jangan lepaskan selama 30 detik.",
+        "Belai rambutku dengan penuh kasih.",
+        "Buat aku tersenyum dengan sentuhan sederhana.",
+        "Beri aku pelukan hangat tanpa alasan.",
+        "Biarkan aku berbaring di pangkuanmu selama 5 menit.",
+        "Sentuh ujung jariku dengan jarimu, lalu tatap mataku.",
+        "Cium tanganku perlahan.",
+        "Dekap aku dengan penuh perasaan sambil berbisik tiga kata manis.",
+        "Beri aku kecupan ringan di pipi setiap kali aku menatapmu."
+      ],
+      level2: [
+        "Bisikkan sesuatu yang kamu ingin aku lakukan untukmu, tanpa menjelaskannya.",
+        "Ceritakan satu fantasi romantis yang kamu bayangkan bersamaku.",
+        "Katakan satu bagian tubuhku yang paling kamu sukai.",
+        "Tatap bibirku selama 10 detik tanpa menyentuh.",
+        "Cium bagian tubuh pilihanmu secara lembut.",
+        "Kirimkan pesan singkat yang membuatku penasaran.",
+        "Katakan 'aku menginginkanmu' dengan cara paling lembut.",
+        "Gunakan suaramu untuk membuatku merasa diinginkan.",
+        "Tulis satu kalimat menggoda di selembar kertas dan berikan padaku.",
+        "Katakan padaku bagaimana caraku membuatmu merasa spesial.",
+        "Tanyakan apa yang membuatku merasa paling dicintai.",
+        "Bayangkan kita hanya berdua di tempat favoritmu — ceritakan suasananya.",
+        "Ucapkan hal paling romantis yang bisa kamu pikirkan saat ini.",
+        "Pegang tanganku dan tarik aku mendekat tanpa berkata apa-apa.",
+        "Katakan satu hal yang kamu ingin kita lakukan bersama malam ini."
+      ],
+      level3: [
+        "Tuliskan pesan rahasia di kulitku dengan ujung jarimu.",
+        "Minta aku menebak apa yang kamu pikirkan tentangku sekarang.",
+        "Tutup mataku, lalu berikan satu kejutan kecil.",
+        "Mainkan permainan 'siapa yang bisa membuat yang lain tersenyum duluan'.",
+        "Berikan aku 'cinta dalam 30 detik' — bebas interpretasi.",
+        "Pilih lagu romantis dan ajak aku berdansa pelan.",
+        "Gunakan satu kata untuk menggoda aku, tapi tanpa menyebutkan cinta.",
+        "Kirim emoji atau simbol rahasia yang hanya kita berdua tahu artinya.",
+        "Tulis catatan kecil untuk kusimpan di bawah bantal.",
+        "Beri aku julukan manis dan panggil dengan itu malam ini.",
+        "Bisikkan 'aku merindukanmu' seolah kita sudah lama berpisah.",
+        "Ajak aku bermain 'truth or touch' — pilih salah satu.",
+        "Tulis 'aku ingin…' dan biarkan aku melanjutkan kalimatnya.",
+        "Baringkan aku di pelukanmu dan ceritakan satu kenangan indah.",
+        "Ajak aku membuat 'momen hangat' tanpa kata, hanya gestur."
+      ]
+    };
+
+    const card = document.getElementById('card');
+    const btn = document.getElementById('actionBtn');
+
+    let sequence = [];
+    let index = -1;
+    let started = false;
+
+    function shuffle(array) {
+      return array
+        .map(value => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+    }
+
+    function buildSequence() {
+      sequence = [];
+      const l1 = shuffle([...questions.level1]).slice(0, 6);
+      const l2 = shuffle([...questions.level2]).slice(0, 6);
+      const l3 = shuffle([...questions.level3]).slice(0, 6);
+      sequence.push(...l1, ...l2, ...l3);
+    }
+
+    btn.addEventListener('click', () => {
+      if (!started) {
+        started = true;
+        buildSequence();
+        index = 0;
+        card.textContent = sequence[index];
+        btn.textContent = 'Selanjutnya';
+        return;
+      }
+
+      index++;
+
+      if (index < sequence.length) {
+        card.textContent = sequence[index];
+      } else {
+        btn.textContent = 'Restart';
+        card.textContent = 'Permainan selesai. Klik restart untuk mengulang.';
+        started = false;
+      }
+    });
+  </script>
+</body>
+</html>

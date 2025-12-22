@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ziray Games Station</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* --- 1. Hero Section --- */
+        .hero {
+            height: 60vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 2rem;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -2px;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* --- 2. Daftar Game (Grid Section) --- */
+        .container {
+            max-width: 1200px;
+            margin: -60px auto 80px;
+            padding: 0 20px;
+        }
+
+        .game-grid {
+            display: grid;
+            /* Desktop: 4 kolom (masing-masing 3/12) */
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .game-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-decoration: none;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-card:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5), 
+                        0 0 15px rgba(56, 189, 248, 0.3);
+            border-color: var(--accent);
+        }
+
+        .thumbnail {
+            width: 100%;
+            aspect-ratio: 1/1; /* Square format */
+            background: #334155;
+            overflow: hidden;
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .game-card:hover .thumbnail img {
+            transform: scale(1.1);
+        }
+
+        .game-info {
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .game-info h3 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* --- 3. Footer --- */
+        footer {
+            padding: 3rem 1rem;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: #0b1120;
+        }
+
+        .footer-brand {
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .copyright {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* --- Responsive Design --- */
+        
+        /* Tablet: 3 Kolom */
+        @media (max-width: 1024px) {
+            .game-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Mobile: 2 Kolom (50%) */
+        @media (max-width: 640px) {
+            .hero {
+                height: 50vh;
+            }
+            
+            .container {
+                margin-top: -30px;
+                padding: 0 15px;
+            }
+
+            .game-grid {
+                grid-template-columns: repeat(2, 1fr); /* Ukuran 50% */
+                gap: 15px;
+            }
+
+            .game-info {
+                padding: 0.8rem;
+            }
+
+            .game-info h3 {
+                font-size: 0.9rem;
+            }
+            
+            .game-card {
+                border-radius: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="hero">
+        <h1>Ziray Games Station</h1>
+        <p>Koleksi mini games eksklusif karya <strong>Ziraymedia</strong> yang dirancang untuk keseruan instan di browser Anda.</p>
+    </header>
+
+    <main class="container">
+        <div class="game-grid">
+            
+            <a href="deep-talk.html" target="_blank" class="game-card">
+                <div class="thumbnail">
+                    <img src="https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=400&h=400&fit=crop" alt="Game 1">
+                </div>
+                <div class="game-info">
+                    <h3>Deep Talk</h3>
+                </div>
+            </a>
+
+            <a href="truth-or-dare.html" target="_blank" class="game-card">
+                <div class="thumbnail">
+                    <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=400&fit=crop" alt="Game 2">
+                </div>
+                <div class="game-info">
+                    <h3>Truth Or Dare</h3>
+                </div>
+            </a>
+
+            <a href="jalan-kecil.html" target="_blank" class="game-card">
+                <div class="thumbnail">
+                    <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400&h=400&fit=crop" alt="Game 3">
+                </div>
+                <div class="game-info">
+                    <h3>Jalan Kecil</h3>
+                </div>
+            </a>
+
+            <a href="snake.html" target="_blank" class="game-card">
+                <div class="thumbnail">
+                    <img src="https://images.unsplash.com/photo-1611996575749-79a3a250f948?w=400&h=400&fit=crop" alt="Game 4">
+                </div>
+                <div class="game-info">
+                    <h3>Snake</h3>
+                </div>
+            </a>
+
+            <a href="ular-tangga.html" target="_blank" class="game-card">
+                <div class="thumbnail">
+                    <img src="https://images.unsplash.com/photo-1611996575749-79a3a250f948?w=400&h=400&fit=crop" alt="Game 4">
+                </div>
+                <div class="game-info">
+                    <h3>Ular Tangga</h3>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-brand">Ziraymedia</div>
+        <div class="copyright">
+            &copy; 2025 Ziray Games Station. Built with Passion.
+        </div>
+    </footer>
+
+</body>
+</html>

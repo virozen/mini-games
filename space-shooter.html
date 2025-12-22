@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Shooter: Boss Annihilation</title>
+    <title>HUNTER SPACE HUNTER</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech&display=swap');
         body { margin: 0; background: #010103; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Share Tech', sans-serif; }
@@ -146,7 +146,7 @@
             asteroids.forEach(a => { a.y += a.speed; if (a.y > canvas.height + a.size) a.y = -a.size; ctx.fillStyle = "rgba(100, 100, 100, 0.15)"; ctx.beginPath(); ctx.arc(a.x, a.y, a.size/2, 0, Math.PI*2); ctx.fill(); });
 
             if (gameState === 'START') {
-                ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "32px 'Share Tech'"; ctx.fillText("GALACTIC FRONTIER", canvas.width/2, 300);
+                ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.font = "32px 'Share Tech'"; ctx.fillText("HUNTER SPACE HUNTER", canvas.width/2, 300);
                 drawButton(startBtn, "START MISSION");
             } 
             else if (gameState === 'PLAYING') {

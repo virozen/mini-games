@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>F1 ELITE DRIFT</title>
+    <style>
+        :root {
+            --bg: #1e272e;
+            --road: #2f3542;
+            --primary: #70a1ff;
+            --gold: #f1c40f;
+            --glass: rgba(47, 53, 66, 0.9);
+        }
+        body { 
+            margin: 0; display: flex; align-items: center; justify-content: center; 
+            height: 100vh; background-color: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; 
+            overflow: hidden; touch-action: none;
+        }
+        #game-container { 
+            position: relative; border-radius: 20px; overflow: hidden; 
+            box-shadow: 0 40px 80px rgba(0,0,0,0.6); border: 2px solid #3d464d;
+        }
+        canvas { background-color: var(--road); display: block; }
+        
+        /* UI LAYOUT */
+        .hud-left { position: absolute; top: 20px; left: 20px; display: flex; gap: 10px; z-index: 10; pointer-events: none; }
+        .hud-right { position: absolute; top: 20px; right: 20px; z-index: 10; }
+        .stat-card { 
+            background: var(--glass); backdrop-filter: blur(10px); padding: 8px 15px; border-radius: 10px; 
+            border: 1px solid rgba(255,255,255,0.1); min-width: 70px;
+        }
+        .stat-label { font-size: 9px; color: var(--primary); text-transform: uppercase; font-weight: bold; display: block; }
+        .stat-value { font-size: 18px; font-weight: 700; }
+        
+        button#pauseBtn {
+            background: var(--glass); border: 1px solid rgba(255,255,255,0.2); color: white;
+            padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        button#pauseBtn:hover { background: #57606f; }
+
+        .speedometer { position: absolute; bottom: 25px; right: 25px; text-align: right; pointer-events: none; }
+        .shield-ui { position: absolute; bottom: 25px; left: 25px; color: #a29bfe; font-weight: bold; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="hud-left">
+            <div class="stat-card"><span class="stat-label">Earnings</span><span id="score" class="stat-value">0</span></div>
+            <div class="stat-card"><span class="stat-label">Level</span><span id="level" class="stat-value">1</span></div>
+        </div>
+
+        <div class="hud-right">
+            <button id="pauseBtn" onclick="togglePause()">PAUSE</button>
+        </div>
+
+        <div class="speedometer">
+            <span style="font-size: 10px; opacity: 0.6;">VELOCITY</span><br>
+            <span id="speedVal" style="font-size: 28px; font-weight: 900;">0</span> <span style="font-size: 12px;">km/h</span>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div id="shieldStatus" class="shield-ui"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score'), levelEl = document.getElementById('level');
+        const speedEl = document.getElementById('speedVal'), shieldEl = document.getElementById('shieldStatus');
+        const pauseBtn = document.getElementById('pauseBtn');
+
+        let gameActive = true, isPaused = false, score = 0, level = 1, currentSpeed = 4;
+        const player = { x: 200, y: 520, w: 30, h: 60, vx: 0, accel: 0.9, friction: 0.85 };
+        let roads = [], items = [], shieldTime = 0, pathCenter = 200, pathWidth = 200;
+        let keys = {};
+
+        window.addEventListener('keydown', e => { 
+            keys[e.code] = true; 
+            if(e.code === 'KeyP' || e.code === 'Escape') togglePause();
+        });
+        window.addEventListener('keyup', e => keys[e.code] = false);
+
+        function togglePause() { 
+            if(!gameActive) return;
+            isPaused = !isPaused; 
+            pauseBtn.innerText = isPaused ? "RESUME" : "PAUSE"; 
+        }
+
+        function initGame() {
+            score = 0; level = 1; currentSpeed = 4; shieldTime = 0;
+            player.x = 200; player.vx = 0;
+            roads = []; items = []; isPaused = false;
+            for (let i = 0; i < canvas.height; i++) roads.push({ left: 100, right: 300 });
+            gameActive = true;
+        }
+
+        function generateRoad() {
+            if (Math.random() > 0.92) pathCenter += (Math.random() - 0.5) * 35;
+            let minW = Math.max(130, 200 - (level * 5));
+            pathWidth = Math.max(minW, Math.min(240, pathWidth));
+            pathCenter = Math.max(pathWidth/2 + 20, Math.min(canvas.width - pathWidth/2 - 20, pathCenter));
+
+            roads.unshift({ left: pathCenter - pathWidth/2, right: pathCenter + pathWidth/2 });
+            if (roads.length > canvas.height) roads.pop();
+
+            if (Math.random() < 0.02) {
+                let type = Math.random() < 0.4 ? 'obstacle' : (Math.random() > 0.95 ? 'shield' : 'score');
+                items.push({ x: pathCenter + (Math.random() - 0.5) * (pathWidth - 50), y: -50, type, active: true });
+            }
+        }
+
+        function drawF1Car(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(player.vx * 0.04);
+
+            // Shadow
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.fillRect(-15, 10, 30, 50);
+
+            // 1. Sayap Belakang (Rear Wing)
+            ctx.fillStyle = "#1e272e";
+            ctx.fillRect(-18, 15, 36, 6);
+
+            // 2. Ban Belakang (Rear Wheels)
+            ctx.fillStyle = "#111";
+            ctx.fillRect(-22, 5, 8, 15);
+            ctx.fillRect(14, 5, 8, 15);
+
+            // 3. Bodi Utama (Monocoque)
+            let bodyGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+            bodyGrad.addColorStop(0, "#c0392b"); bodyGrad.addColorStop(0.5, "#e74c3c"); bodyGrad.addColorStop(1, "#c0392b");
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.moveTo(-7, 20); ctx.lineTo(-4, -25); ctx.lineTo(4, -25); ctx.lineTo(7, 20);
+            ctx.fill();
+
+            // 4. Sayap Depan (Front Wing)
+            ctx.fillStyle = "#1e272e";
+            ctx.fillRect(-16, -28, 32, 4);
+
+            // 5. Ban Depan (Front Wheels)
+            ctx.fillStyle = "#111";
+            ctx.fillRect(-18, -25, 6, 12);
+            ctx.fillRect(12, -25, 6, 12);
+
+            // 6. Cockpit (Halo)
+            ctx.fillStyle = "#000";
+            ctx.beginPath(); ctx.arc(0, -5, 3, 0, Math.PI*2); ctx.fill();
+
+            if (shieldTime > 0) {
+                ctx.strokeStyle = "#a29bfe"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(0, -5, 40, 0, Math.PI*2); ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function update() {
+            if (!gameActive || isPaused) return;
+
+            if (keys['ArrowUp']) currentSpeed = Math.min(15, currentSpeed + 0.1);
+            else if (keys['ArrowDown']) currentSpeed = Math.max(3, currentSpeed - 0.15);
+            if (keys['ArrowLeft']) player.vx -= player.accel;
+            if (keys['ArrowRight']) player.vx += player.accel;
+            
+            player.vx *= player.friction;
+            player.x += player.vx;
+
+            let road = roads[Math.floor(player.y)];
+            if (road) {
+                const margin = player.w / 2;
+                if (player.x - margin < road.left || player.x + margin > road.right) {
+                    if (shieldTime > 0) {
+                        player.x = (player.x - margin < road.left) ? road.left + margin : road.right - margin;
+                        player.vx *= -0.5;
+                    } else { gameActive = false; }
+                }
+            }
+
+            if (shieldTime > 0) shieldTime--;
+            for (let i = 0; i < Math.floor(currentSpeed); i++) {
+                generateRoad();
+                items.forEach(item => item.y += 1);
+            }
+
+            items = items.filter(item => item.y < canvas.height && item.active);
+            items.forEach(item => {
+                if (Math.hypot(player.x - item.x, player.y - item.y) < 35) {
+                    if (item.type === 'obstacle') { if (shieldTime <= 0) score = Math.max(0, score - 20); }
+                    else if (item.type === 'score') { score += 10; if (score % 200 === 0) level++; }
+                    else if (item.type === 'shield') shieldTime = 500;
+                    item.active = false;
+                }
+            });
+
+            scoreEl.innerText = score; levelEl.innerText = level;
+            speedEl.innerText = Math.floor(currentSpeed * 22);
+            shieldEl.innerText = shieldTime > 0 ? `🛡️ DRS ACTIVE: ${Math.ceil(shieldTime/60)}s` : "";
+        }
+
+        function draw() {
+            ctx.fillStyle = "#1e272e"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < roads.length; i++) {
+                ctx.fillStyle = "#2f3542";
+                ctx.fillRect(roads[i].left, i, roads[i].right - roads[i].left, 1);
+                ctx.fillStyle = "#57606f"; // Solid Boundary
+                ctx.fillRect(roads[i].left - 8, i, 8, 1);
+                ctx.fillRect(roads[i].right, i, 8, 1);
+            }
+
+            items.forEach(item => {
+                ctx.save(); ctx.translate(item.x, item.y);
+                if (item.type === 'obstacle') {
+                    ctx.fillStyle = '#4b4b4b'; ctx.fillRect(-12, -12, 24, 24);
+                } else if (item.type === 'score') {
+                    ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000'; ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center'; ctx.fillText('$', 0, 5);
+                } else {
+                    ctx.fillStyle = '#a29bfe'; ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(12, 8); ctx.lineTo(-12, 8); ctx.fill();
+                }
+                ctx.restore();
+            });
+
+            drawF1Car(player.x, player.y);
+
+            if (isPaused) {
+                ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 24px Segoe UI';
+                ctx.fillText("PAUSED", canvas.width/2, canvas.height/2);
+            }
+
+            if (!gameActive) {
+                ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ff3f34'; ctx.textAlign = 'center'; ctx.font = 'bold 26px Arial';
+                ctx.fillText("SESSION TERMINATED", canvas.width/2, canvas.height/2);
+                ctx.fillStyle = '#fff'; ctx.font = '14px Arial';
+                ctx.fillText("Tap to Restart Race", canvas.width/2, canvas.height/2 + 40);
+            }
+        }
+
+        canvas.addEventListener('mousedown', () => { if (!gameActive) initGame(); });
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        initGame(); loop();
+    </script>
+</body>
+</html>

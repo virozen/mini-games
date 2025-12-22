@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ular Tangga Championship & Battle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text: #f8fafc;
+            --primary: #3b82f6;
+            --success: #10b981;
+            --gold: #fbbf24;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at center, #1e293b, #0f172a);
+            color: var(--text);
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 10px; overflow-x: hidden;
+        }
+
+        .glass-panel {
+            background: var(--glass); backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border); border-radius: 20px;
+            padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        /* Setup */
+        #setup-container { width: 90%; max-width: 350px; text-align: center; margin-top: 20px; }
+        .input-list { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
+        .name-input { padding: 12px; border-radius: 10px; border: none; outline: none; background: white; color: #1e293b; font-weight: 600; width: calc(100% - 24px); }
+
+        /* Game Layout */
+        #game-layout { display: none; flex-direction: column; gap: 20px; align-items: center; width: 100%; }
+        @media (min-width: 850px) { #game-layout { flex-direction: row; justify-content: center; align-items: flex-start; } }
+
+        #board-wrapper { position: relative; width: 320px; height: 320px; border-radius: 12px; overflow: hidden; background: white; flex-shrink: 0; }
+        @media (min-width: 500px) { #board-wrapper { width: 450px; height: 450px; } }
+        @media (min-width: 850px) { #board-wrapper { width: 500px; height: 500px; } }
+
+        #board { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr); width: 100%; height: 100%; }
+        .cell { border: 0.1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #94a3b8; }
+
+        /* Players */
+        .player {
+            width: 22px; height: 22px; border-radius: 50%; position: absolute; z-index: 10;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); border: 2px solid white;
+            transition: all 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+        .eye-container { display: flex; gap: 2px; }
+        .eye { width: 4px; height: 6px; background: white; border-radius: 50%; position: relative; }
+        .eye::after { content: ''; width: 2px; height: 2px; background: black; position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%); border-radius: 50%; }
+        
+        .player-label { position: absolute; top: -30px; background: white; color: black; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; display: none; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .active-player .player-label { display: block; }
+
+        /* Dice */
+        .dice-box { perspective: 600px; margin: 15px auto; width: 60px; height: 60px; cursor: pointer; }
+        .dice { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.8s ease-out; }
+        .dice-face { position: absolute; width: 60px; height: 60px; background: white; border: 2px solid #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #1e293b; border-radius: 12px; }
+        .f1 { transform: rotateY(0deg) translateZ(30px); }
+        .f2 { transform: rotateY(90deg) translateZ(30px); }
+        .f3 { transform: rotateY(180deg) translateZ(30px); }
+        .f4 { transform: rotateY(-90deg) translateZ(30px); }
+        .f5 { transform: rotateX(90deg) translateZ(30px); }
+        .f6 { transform: rotateX(-90deg) translateZ(30px); }
+        .rolling { animation: rotateDice 0.4s infinite linear; }
+        @keyframes rotateDice { 100% { transform: rotateX(360deg) rotateY(360deg); } }
+
+        .btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%; transition: 0.3s; margin-top: 10px; }
+        .btn-add { background: var(--success); }
+        #graphics-layer { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 5; }
+
+        /* Leaderboard Modal */
+        #winner-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        .modal-content { background: white; color: #1e293b; padding: 30px; border-radius: 30px; text-align: center; width: 85%; max-width: 400px; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .winner-list { list-style: none; padding: 0; margin: 20px 0; }
+        .winner-item { padding: 15px; margin: 10px 0; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; background: #f8fafc; }
+        .rank-1 { background: #fef3c7; border: 2px solid var(--gold); }
+        @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="setup-container" class="glass-panel">
+        <h2 style="margin: 0 0 10px 0;">🏆 Championship</h2>
+        <div id="input-list" class="input-list">
+            <input type="text" placeholder="Nama Pemain 1" class="name-input">
+            <input type="text" placeholder="Nama Pemain 2" class="name-input">
+        </div>
+        <button class="btn btn-add" onclick="addInputRow()">+ Tambah Baris Nama</button>
+        <button class="btn" onclick="startGame()">MULAI GAME</button>
+    </div>
+
+    <div id="game-layout">
+        <div id="board-wrapper">
+            <div id="board"></div>
+            <canvas id="graphics-layer"></canvas>
+        </div>
+
+        <div id="side-panel" style="width: 320px;">
+            <div class="glass-panel" style="text-align: center;">
+                <h3 id="turn-display" style="margin: 0;">Giliran</h3>
+                <div class="dice-box" onclick="rollDice()">
+                    <div id="dice-obj" class="dice">
+                        <div class="dice-face f1">1</div><div class="dice-face f2">2</div>
+                        <div class="dice-face f3">3</div><div class="dice-face f4">4</div>
+                        <div class="dice-face f5">5</div><div class="dice-face f6">6</div>
+                    </div>
+                </div>
+                <p id="game-info" style="font-size: 13px; color: #fbbf24; min-height: 45px; margin: 0;"></p>
+                
+                <div id="mid-join-box" style="padding-top: 15px; border-top: 1px solid var(--glass-border); margin-top: 10px;">
+                    <p style="font-size: 11px; margin-bottom: 8px;">Ada yang mau ikutan?</p>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="mid-game-name" placeholder="Nama teman..." style="flex: 1; padding: 8px; border-radius: 8px; border: none; font-size: 12px;">
+                        <button class="btn btn-add" onclick="addNewPlayer()" style="margin: 0; width: auto; padding: 8px 15px; font-size: 12px;">+ Join</button>
+                    </div>
+                </div>
+
+                <button class="btn" style="background: #ef4444; margin-top: 20px; font-size: 12px;" onclick="location.reload()">Reset Board</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="winner-modal">
+        <div class="modal-content">
+            <h2 style="margin: 0;">PODIUM JUARA</h2>
+            <ul id="winner-list" class="winner-list"></ul>
+            <button class="btn" onclick="location.reload()">Main Lagi</button>
+        </div>
+    </div>
+
+    <script>
+        const cfg = {
+            snakes: { 17: 7, 54: 34, 62: 19, 93: 73, 98: 79 },
+            ladders: { 3: 38, 9: 31, 21: 42, 28: 84, 51: 67, 80: 99 },
+            colors: ['#f87171', '#60a5fa', '#fbbf24', '#c084fc', '#2dd4bf', '#a3e635']
+        };
+
+        let players = [];
+        let winners = [];
+        let turnIndex = 0;
+        let moving = false;
+
+        function addInputRow() {
+            const list = document.getElementById('input-list');
+            if (list.children.length < 6) {
+                const input = document.createElement('input');
+                input.className = 'name-input';
+                input.placeholder = `Nama Pemain ${list.children.length + 1}`;
+                list.appendChild(input);
+            }
+        }
+
+        function startGame() {
+            const inputs = document.querySelectorAll('.name-input');
+            const names = [];
+            inputs.forEach(inp => { if (inp.value.trim()) names.push(inp.value.trim()); });
+            if (names.length < 1) return alert("Butuh pemain!");
+
+            document.getElementById('setup-container').style.display = 'none';
+            document.getElementById('game-layout').style.display = 'flex';
+
+            renderBoard();
+            names.forEach(name => createPlayer(name));
+            setTimeout(drawLines, 200);
+            updateTurnUI();
+            
+            window.addEventListener('resize', () => { 
+                renderBoard(); 
+                players.forEach((p, i) => { if(!p.finished) updatePlayerPos(i); }); 
+                drawLines(); 
+            });
+        }
+
+        function createPlayer(name) {
+            const id = players.length;
+            const p = { name, pos: 1, color: cfg.colors[id % cfg.colors.length], el: null, finished: false };
+            const div = document.createElement('div');
+            div.className = 'player';
+            div.style.backgroundColor = p.color;
+            div.innerHTML = `<div class="player-label">${name}</div><div class="eye-container"><div class="eye"></div><div class="eye"></div></div>`;
+            document.getElementById('board-wrapper').appendChild(div);
+            p.el = div;
+            players.push(p);
+            updatePlayerPos(id);
+        }
+
+        function addNewPlayer() {
+            const input = document.getElementById('mid-game-name');
+            if (input.value.trim()) {
+                createPlayer(input.value.trim());
+                input.value = "";
+                updateTurnUI();
+            }
+        }
+
+        function renderBoard() {
+            const wrapper = document.getElementById('board-wrapper');
+            const board = document.getElementById('board');
+            const canvas = document.getElementById('graphics-layer');
+            const w = wrapper.clientWidth;
+            canvas.width = w; canvas.height = w;
+            board.innerHTML = '';
+            for (let r = 9; r >= 0; r--) {
+                for (let c = 0; c < 10; c++) {
+                    let col = (r % 2 === 0) ? 9 - c : c;
+                    let num = (r * 10) + col + 1;
+                    const cell = document.createElement('div');
+                    cell.className = 'cell'; cell.id = `cell-${num}`; cell.innerText = num;
+                    if ((r + col) % 2 === 0) cell.style.background = '#f1f5f9';
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function drawLines() {
+            const canvas = document.getElementById('graphics-layer');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const cS = w / 10;
+            const getPos = (n) => {
+                const el = document.getElementById(`cell-${n}`);
+                return { x: el.offsetLeft + (cS/2), y: el.offsetTop + (cS/2) };
+            };
+            ctx.clearRect(0, 0, w, w);
+            ctx.lineCap = 'round';
+            for (let [s, e] of Object.entries(cfg.ladders)) {
+                const start = getPos(s), end = getPos(e);
+                ctx.beginPath(); ctx.strokeStyle = 'rgba(34, 197, 94, 0.4)';
+                ctx.lineWidth = w/40; ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+            }
+            for (let [s, e] of Object.entries(cfg.snakes)) {
+                const start = getPos(s), end = getPos(e);
+                ctx.beginPath(); ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+                ctx.lineWidth = w/60; ctx.setLineDash([10, 5]); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke(); ctx.setLineDash([]);
+            }
+        }
+
+        function updatePlayerPos(idx) {
+            const p = players[idx];
+            if(p.finished) return;
+            const cell = document.getElementById(`cell-${p.pos}`);
+            const w = cell.clientWidth;
+            const offset = (idx * (w/12)) - (w/6);
+            p.el.style.left = (cell.offsetLeft + (w/2) - (p.el.clientWidth/2) + offset) + 'px';
+            p.el.style.top = (cell.offsetTop + (w/2) - (p.el.clientHeight/2) + offset) + 'px';
+        }
+
+        function rollDice() {
+            if (moving) return;
+            moving = true;
+            const res = Math.floor(Math.random() * 6) + 1;
+            const dice = document.getElementById('dice-obj');
+            dice.classList.add('rolling');
+            document.getElementById('game-info').innerText = "Dadu berputar...";
+            
+            setTimeout(() => {
+                dice.classList.remove('rolling');
+                const rot = { 1:'rotateX(0deg) rotateY(0deg)', 2:'rotateX(0deg) rotateY(-90deg)', 3:'rotateX(0deg) rotateY(-180deg)', 4:'rotateX(0deg) rotateY(90deg)', 5:'rotateX(-90deg) rotateY(0deg)', 6:'rotateX(90deg) rotateY(0deg)' };
+                dice.style.transform = rot[res];
+                moveProcess(res);
+            }, 800);
+        }
+
+        async function moveProcess(steps) {
+            let p = players[turnIndex];
+            document.getElementById('game-info').innerText = `${p.name} melangkah ${steps} kotak`;
+
+            for (let i = 0; i < steps; i++) {
+                if (p.pos < 100) {
+                    p.pos++;
+                    updatePlayerPos(turnIndex);
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            }
+
+            // Ular / Tangga
+            if (cfg.ladders[p.pos]) { 
+                p.pos = cfg.ladders[p.pos]; 
+                document.getElementById('game-info').innerText = "MANTAP! Naik Tangga!"; 
+            } else if (cfg.snakes[p.pos]) { 
+                p.pos = cfg.snakes[p.pos]; 
+                document.getElementById('game-info').innerText = "WADUH! Digigit Ular!"; 
+            }
+            updatePlayerPos(turnIndex);
+            await new Promise(r => setTimeout(r, 300));
+
+            // Battle Deteksi
+            for (let i = 0; i < players.length; i++) {
+                if (i !== turnIndex && !players[i].finished && players[i].pos === p.pos && p.pos > 1) {
+                    let kicked = players[i];
+                    document.getElementById('game-info').innerText = `${p.name} MENENDANG ${kicked.name}!`;
+                    let target = Math.max(1, kicked.pos - 3);
+                    while(kicked.pos > target) {
+                        kicked.pos--; 
+                        updatePlayerPos(i); 
+                        await new Promise(r => setTimeout(r, 100));
+                    }
+                }
+            }
+
+            // Cek Finish
+            if (p.pos >= 100) {
+                p.finished = true;
+                p.el.style.opacity = "0"; 
+                p.el.style.pointerEvents = "none";
+                winners.push(p.name);
+                document.getElementById('game-info').innerText = `${p.name} BERHASIL FINISH! 🏁`;
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            // Cek Akhir Permainan
+            const remaining = players.filter(pl => !pl.finished);
+            if (remaining.length <= 1) {
+                if(remaining.length === 1) winners.push(remaining[0].name);
+                showFinalResults();
+            } else {
+                nextTurn();
+                moving = false;
+            }
+        }
+
+        function nextTurn() {
+            do {
+                turnIndex = (turnIndex + 1) % players.length;
+            } while (players[turnIndex].finished);
+            updateTurnUI();
+        }
+
+        function showFinalResults() {
+            const list = document.getElementById('winner-list');
+            list.innerHTML = '';
+            winners.forEach((name, i) => {
+                const li = document.createElement('li');
+                li.className = `winner-item ${i === 0 ? 'rank-1' : ''}`;
+                li.innerHTML = `<span>#${i+1} ${name}</span> <span>${i===0?'🥇':i===1?'🥈':i===2?'🥉':''}</span>`;
+                list.appendChild(li);
+            });
+            document.getElementById('winner-modal').style.display = 'flex';
+        }
+
+        function updateTurnUI() {
+            players.forEach((p, i) => { if(p.el) p.el.classList.toggle('active-player', i === turnIndex); });
+            const active = players[turnIndex];
+            if (active) {
+                const display = document.getElementById('turn-display');
+                display.innerText = "Giliran: " + active.name;
+                display.style.color = active.color;
+            }
+        }
+    </script>
+</body>
+</html>

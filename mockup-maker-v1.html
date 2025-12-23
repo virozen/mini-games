@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Studio Pro Ultra - Final Gold Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap');
+        body { background-color: #09090b; color: #fafafa; overflow: hidden; height: 100vh; font-family: 'Inter', sans-serif; }
+        #drop-zone { flex: 1; position: relative; overflow: hidden; background-color: #121214; background-image: radial-gradient(#27272a 1px, transparent 1px); background-size: 24px 24px; }
+        .sidebar { background: #18181b; border-right: 1px solid #27272a; }
+        .layer-item { transition: 0.2s; background: rgba(39, 39, 42, 0.4); border: 2px solid transparent; cursor: grab; position: relative; }
+        .layer-item.active { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        .layer-item.drag-over { border-top: 3px solid #3b82f6; }
+        .tool-btn { background: #27272a; padding: 8px; border-radius: 6px; font-size: 10px; font-weight: 800; border: 1px solid #3f3f46; color: #a1a1aa; transition: 0.2s; }
+        .tool-btn.active { background: #3b82f6; color: white; border-color: #60a5fa; }
+        #zoom-indicator { position: absolute; bottom: 20px; right: 20px; background: rgba(24, 24, 27, 0.8); padding: 5px 12px; border-radius: 20px; border: 1px solid #3f3f46; font-size: 10px; font-weight: 800; pointer-events: none; z-index: 50; }
+        #text-overlay-editor { position: absolute; background: transparent; color: white; border: 1px solid #3b82f6; display: none; z-index: 1000; outline: none; resize: none; overflow: hidden; font-weight: 900; line-height: 1.1; text-align: center; }
+    </style>
+</head>
+<body class="flex flex-col md:flex-row">
+
+    <aside class="sidebar w-full md:w-80 flex flex-col h-screen z-10">
+        <div class="p-6 border-b border-zinc-800 flex justify-between items-center">
+            <h1 class="text-xs font-black tracking-[0.3em] text-white italic">STUDIO<span class="text-blue-500">PRO</span></h1>
+            <div class="flex gap-4 text-zinc-500">
+                <button onclick="undo()" class="hover:text-white" title="Undo (Ctrl+Z)"><i class="fas fa-undo-alt"></i></button>
+                <button onclick="redo()" class="hover:text-white" title="Redo (Ctrl+Y)"><i class="fas fa-redo-alt"></i></button>
+            </div>
+        </div>
+
+        <div class="p-5 space-y-6 flex-1 overflow-y-auto">
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="document.getElementById('fileInput').click()" class="bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-[10px] font-bold uppercase">Import</button>
+                <button onclick="addTextLayer()" class="bg-zinc-800 hover:bg-zinc-700 text-white py-2 rounded-lg text-[10px] font-bold uppercase">Add Text</button>
+                <input type="file" id="fileInput" class="hidden" multiple onchange="handleManualUpload(this)">
+            </div>
+
+            <div id="tool-panel" class="hidden space-y-4">
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btn-transform" onclick="setEditMode('transform')" class="tool-btn active">Scale</button>
+                    <button id="btn-skew" onclick="setEditMode('skew')" class="tool-btn">Skew</button>
+                    <button id="btn-crop" onclick="setEditMode('crop')" class="tool-btn text-emerald-400">Crop</button>
+                </div>
+
+                <div id="text-tools" class="hidden pt-4 border-t border-zinc-800 space-y-3">
+                    <div class="flex gap-1">
+                        <button onclick="setTextAlign('left')" class="p-2 bg-zinc-900 border border-zinc-700 rounded flex-1 hover:bg-zinc-800"><i class="fas fa-align-left"></i></button>
+                        <button onclick="setTextAlign('center')" class="p-2 bg-zinc-900 border border-zinc-700 rounded flex-1 hover:bg-zinc-800"><i class="fas fa-align-center"></i></button>
+                        <button onclick="setTextAlign('right')" class="p-2 bg-zinc-900 border border-zinc-700 rounded flex-1 hover:bg-zinc-800"><i class="fas fa-align-right"></i></button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="number" id="textSize" oninput="updateTextProp()" class="w-2/3 bg-zinc-950 border border-zinc-800 p-2 rounded text-sm text-white outline-none">
+                        <input type="color" id="textColor" oninput="updateTextProp()" class="w-1/3 h-9 bg-zinc-950 border border-zinc-800 p-1 rounded cursor-pointer">
+                    </div>
+                </div>
+                <button id="btn-apply-crop" onclick="applyCrop()" class="hidden w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-bold uppercase">Confirm Crop (Enter)</button>
+            </div>
+
+            <div id="layer-list" class="space-y-1"></div>
+        </div>
+
+        <div class="p-5 border-t border-zinc-800">
+            <button onclick="downloadJPG()" class="w-full py-3 bg-white hover:bg-zinc-200 text-black rounded-lg text-[11px] font-black uppercase">Merge & Export JPG</button>
+        </div>
+    </aside>
+
+    <main id="drop-zone">
+        <canvas id="mainCanvas"></canvas>
+        <textarea id="text-overlay-editor" spellcheck="false"></textarea>
+        <div id="zoom-indicator">100%</div>
+    </main>
+
+<script>
+    const canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
+    const dropZone = document.getElementById('drop-zone'), layerListUI = document.getElementById('layer-list'), textEditor = document.getElementById('text-overlay-editor');
+    
+    let layers = [], activeLayerIdx = -1, editMode = 'transform', dragMode = null;
+    let scale = 1, offsetX = 0, offsetY = 0, isShiftPressed = false, isSpacePressed = false;
+    let undoStack = [], redoStack = [], startPan = { x: 0, y: 0 }, activeCornerIdx = -1;
+    let rotationStart = 0, baseAngle = 0, draggedIdx = null;
+
+    function init() { canvas.width = dropZone.clientWidth; canvas.height = dropZone.clientHeight; render(); }
+    window.onresize = init; init();
+
+    function render() {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = '#121214'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.translate(offsetX, offsetY); ctx.scale(scale, scale);
+
+        layers.slice().reverse().forEach((l, idx) => {
+            const realIdx = layers.length - 1 - idx;
+            if (!l.visible) return;
+            ctx.save();
+            const c = getCenter(l.corners);
+            ctx.translate(c.x, c.y); ctx.rotate(l.rotation || 0); ctx.translate(-c.x, -c.y);
+            if (l.type === 'image') {
+                if (l.isSkewed || (editMode === 'skew' && realIdx === activeLayerIdx)) drawSkewed(l, ctx);
+                else if (editMode === 'crop' && realIdx === activeLayerIdx) drawCropping(l, ctx);
+                else ctx.drawImage(l.img, l.corners[0].x, l.corners[0].y, l.corners[1].x-l.corners[0].x, l.corners[2].y-l.corners[1].y);
+            } else if (!l.isEditing) {
+                ctx.fillStyle = l.color; ctx.font = `900 ${l.fontSize}px Inter`; ctx.textAlign = l.align || 'center';
+                ctx.fillText(l.text, c.x, c.y + l.fontSize/3.5);
+            }
+            ctx.restore();
+            if (realIdx === activeLayerIdx) drawGizmos(l);
+        });
+        document.getElementById('zoom-indicator').innerText = `${Math.round(scale * 100)}%`;
+    }
+
+    function drawGizmos(l) {
+        ctx.save();
+        const c = getCenter(l.corners); ctx.translate(c.x, c.y); ctx.rotate(l.rotation || 0); ctx.translate(-c.x, -c.y);
+        let color = editMode === 'skew' ? "#fbbf24" : (editMode === 'crop' ? "#10b981" : "#3b82f6");
+        ctx.strokeStyle = color; ctx.lineWidth = 2/scale;
+        ctx.beginPath(); l.corners.forEach((p,i) => i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.closePath(); ctx.stroke();
+        const rotX = (l.corners[0].x + l.corners[1].x)/2, rotY = l.corners[0].y - 35/scale;
+        ctx.beginPath(); ctx.moveTo(rotX, l.corners[0].y); ctx.lineTo(rotX, rotY); ctx.stroke();
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(rotX, rotY, 6/scale, 0, Math.PI*2); ctx.fill();
+        l.corners.forEach(p => {
+            ctx.fillStyle = "white"; ctx.beginPath();
+            if(editMode === 'crop') ctx.rect(p.x - 5/scale, p.y - 5/scale, 10/scale, 10/scale);
+            else ctx.arc(p.x, p.y, 5/scale, 0, Math.PI*2);
+            ctx.fill(); ctx.stroke();
+        });
+        ctx.restore();
+    }
+
+    function drawSkewed(l, targetCtx) {
+        const step = 8;
+        for (let y = 0; y < l.img.height; y += step) {
+            for (let x = 0; x < l.img.width; x += step) {
+                const u = x/l.img.width, v = y/l.img.height;
+                const px = (1-u)*(1-v)*l.corners[0].x + u*(1-v)*l.corners[1].x + u*v*l.corners[2].x + (1-u)*v*l.corners[3].x;
+                const py = (1-u)*(1-v)*l.corners[0].y + u*(1-v)*l.corners[1].y + u*v*l.corners[2].y + (1-u)*v*l.corners[3].y;
+                targetCtx.drawImage(l.img, x, y, step, step, px, py, step*((l.corners[1].x-l.corners[0].x)/l.img.width)+1.2, step*((l.corners[2].y-l.corners[1].y)/l.img.height)+1.2);
+            }
+        }
+    }
+
+    function drawCropping(l, targetCtx) {
+        targetCtx.globalAlpha = 0.3; targetCtx.drawImage(l.img, l._visualBounds.minX, l._visualBounds.minY, l._visualBounds.maxX-l._visualBounds.minX, l._visualBounds.maxY-l._visualBounds.minY);
+        targetCtx.globalAlpha = 1; targetCtx.save(); targetCtx.beginPath(); targetCtx.rect(l.corners[0].x, l.corners[0].y, l.corners[1].x-l.corners[0].x, l.corners[2].y-l.corners[1].y); targetCtx.clip();
+        targetCtx.drawImage(l.img, l._visualBounds.minX, l._visualBounds.minY, l._visualBounds.maxX-l._visualBounds.minX, l._visualBounds.maxY-l._visualBounds.minY); targetCtx.restore();
+    }
+
+    // --- LOGIC FUNCTIONS ---
+    function saveState() {
+        const snapshot = JSON.stringify(layers.map(l => ({...l, img: l.type==='image'?l.img.src:null})));
+        undoStack.push(snapshot); redoStack = [];
+    }
+    function undo() { if(undoStack.length) { redoStack.push(JSON.stringify(layers.map(l => ({...l, img: l.type==='image'?l.img.src:null})))); restore(undoStack.pop()); } }
+    function redo() { if(redoStack.length) { undoStack.push(JSON.stringify(layers.map(l => ({...l, img: l.type==='image'?l.img.src:null})))); restore(redoStack.pop()); } }
+    function restore(json) { layers = JSON.parse(json).map(l => { if(l.type==='image'){ const i=new Image(); i.src=l.img; return {...l, img:i}; } return l; }); render(); updateUI(); }
+
+    function moveLayer(direction) {
+        if (activeLayerIdx === -1) return;
+        const targetIdx = activeLayerIdx + direction;
+        if (targetIdx >= 0 && targetIdx < layers.length) {
+            saveState();
+            const temp = layers[activeLayerIdx];
+            layers[activeLayerIdx] = layers[targetIdx];
+            layers[targetIdx] = temp;
+            activeLayerIdx = targetIdx;
+            updateUI(); render();
+        }
+    }
+
+    // --- EVENT LISTENERS ---
+    window.addEventListener('keydown', (e) => {
+        const isEditingText = textEditor.style.display === 'block';
+        if (e.code === 'Space') isSpacePressed = true;
+        if (e.shiftKey) isShiftPressed = true;
+        if (isEditingText) return;
+
+        if (e.key === '[') { e.preventDefault(); moveLayer(1); }
+        if (e.key === ']') { e.preventDefault(); moveLayer(-1); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); }
+        if (e.key === 'Escape' && editMode === 'crop') setEditMode('transform');
+        if (e.key === 'Enter' && editMode === 'crop') applyCrop();
+    });
+
+    window.addEventListener('keyup', (e) => { if (e.code === 'Space') isSpacePressed = false; if (!e.shiftKey) isShiftPressed = false; });
+
+    canvas.ondblclick = (e) => {
+        const m = getMouse(e);
+        const idx = layers.findIndex(l => l.type === 'text' && isInside(getRotatedMouse(m, getCenter(l.corners), -(l.rotation||0)), l.corners));
+        if (idx !== -1) {
+            const l = layers[idx]; activeLayerIdx = idx; updateUI(); saveState();
+            l.isEditing = true; render();
+            const rect = canvas.getBoundingClientRect(), c = getCenter(l.corners);
+            textEditor.style.display = 'block';
+            textEditor.style.left = (c.x*scale+offsetX+rect.left-150)+'px';
+            textEditor.style.top = (c.y*scale+offsetY+rect.top-20)+'px';
+            textEditor.style.width = '300px'; textEditor.style.fontSize = (l.fontSize*scale)+'px';
+            textEditor.style.textAlign = l.align || 'center';
+            textEditor.value = l.text; textEditor.focus();
+            
+            textEditor.oninput = () => { 
+                l.text = textEditor.value; 
+                l.name = textEditor.value.trim() === "" ? "Text Layer" : textEditor.value;
+                updateUI(); // Refresh sidebar names
+                render(); 
+            };
+            textEditor.onblur = () => { l.isEditing = false; textEditor.style.display = 'none'; render(); };
+        }
+    };
+
+    canvas.onmousedown = (e) => {
+        const m = getMouse(e);
+        if (isSpacePressed) { dragMode = 'pan'; startPan = { x: e.clientX - offsetX, y: e.clientY - offsetY }; return; }
+        if (activeLayerIdx !== -1) {
+            const l = layers[activeLayerIdx], c = getCenter(l.corners), rm = getRotatedMouse(m, c, -(l.rotation||0));
+            const rotX = (l.corners[0].x + l.corners[1].x)/2, rotY = l.corners[0].y - 35/scale;
+            if (Math.hypot(rm.x-rotX, rm.y-rotY) < 15/scale) { saveState(); dragMode='rotate'; rotationStart=Math.atan2(m.y-c.y, m.x-c.x); baseAngle=l.rotation||0; return; }
+            for (let i = 0; i < 4; i++) if (Math.hypot(l.corners[i].x - rm.x, l.corners[i].y - rm.y) < 15/scale) { saveState(); dragMode = 'corner'; activeCornerIdx = i; return; }
+            if (isInside(rm, l.corners)) { saveState(); dragMode = 'move'; startPan = { x: rm.x, y: rm.y }; return; }
+        }
+        activeLayerIdx = layers.findIndex(l => isInside(getRotatedMouse(m, getCenter(l.corners), -(l.rotation||0)), l.corners));
+        updateUI(); render();
+    };
+
+    window.onmousemove = (e) => {
+        const m = getMouse(e);
+        if (dragMode === 'pan') { offsetX = e.clientX - startPan.x; offsetY = e.clientY - startPan.y; }
+        else if (dragMode === 'rotate') { const l=layers[activeLayerIdx], c=getCenter(l.corners); l.rotation = baseAngle + (Math.atan2(m.y-c.y, m.x-c.x)-rotationStart); }
+        else if (dragMode === 'corner') {
+            const l=layers[activeLayerIdx], rm=getRotatedMouse(m, getCenter(l.corners), -(l.rotation||0));
+            if(editMode === 'skew') { l.corners[activeCornerIdx] = {x: rm.x, y: rm.y}; l.isSkewed = true; }
+            else performScale(l, activeCornerIdx, rm, isShiftPressed);
+        } else if (dragMode === 'move') {
+            const l=layers[activeLayerIdx], rm=getRotatedMouse(m, getCenter(l.corners), -(l.rotation||0)), dx=rm.x-startPan.x, dy=rm.y-startPan.y;
+            l.corners.forEach(p => { p.x += dx; p.y += dy; });
+            if (l._visualBounds) { l._visualBounds.minX += dx; l._visualBounds.maxX += dx; l._visualBounds.minY += dy; l._visualBounds.maxY += dy; }
+            startPan = { x: rm.x, y: rm.y };
+        }
+        render();
+    };
+
+    window.onmouseup = () => dragMode = null;
+
+    // --- UI & REORDERING ---
+    function updateUI() {
+        layerListUI.innerHTML = '';
+        layers.forEach((l, i) => {
+            const div = document.createElement('div');
+            div.className = `layer-item flex items-center justify-between p-3 rounded-lg mb-1 ${i === activeLayerIdx ? 'active' : 'text-zinc-500'}`;
+            div.draggable = true;
+            div.ondragstart = () => { draggedIdx = i; };
+            div.ondragover = (e) => { e.preventDefault(); div.classList.add('drag-over'); };
+            div.ondragleave = () => { div.classList.remove('drag-over'); };
+            div.ondrop = (e) => {
+                e.preventDefault(); div.classList.remove('drag-over');
+                if(draggedIdx !== null && draggedIdx !== i) {
+                    saveState();
+                    const item = layers.splice(draggedIdx, 1)[0];
+                    layers.splice(i, 0, item);
+                    activeLayerIdx = i; updateUI(); render();
+                }
+            };
+            div.innerHTML = `<div class="flex items-center gap-3"><i class="fas ${l.visible?'fa-eye text-blue-400':'fa-eye-slash'} cursor-pointer" onclick="toggleVis(${i},event)"></i><span class="text-[10px] font-bold uppercase truncate w-32">${l.name}</span></div><i class="fas fa-trash-alt hover:text-red-500 cursor-pointer text-xs" onclick="deleteLayer(${i},event)"></i>`;
+            div.onclick = () => { activeLayerIdx = i; updateUI(); render(); };
+            layerListUI.appendChild(div);
+        });
+        document.getElementById('tool-panel').classList.toggle('hidden', activeLayerIdx === -1);
+        if(activeLayerIdx !== -1 && layers[activeLayerIdx].type === 'text') {
+            document.getElementById('text-tools').classList.remove('hidden');
+            document.getElementById('textSize').value = layers[activeLayerIdx].fontSize;
+            document.getElementById('textColor').value = layers[activeLayerIdx].color;
+        } else document.getElementById('text-tools').classList.add('hidden');
+    }
+
+    // --- CORE LOGIC ---
+    function setTextAlign(a) { 
+        if(activeLayerIdx !== -1) { 
+            layers[activeLayerIdx].align = a; // Fixed: uses 'left', 'center', or 'right' correctly
+            render(); 
+        } 
+    }
+    function updateTextProp() { if(activeLayerIdx !== -1) { layers[activeLayerIdx].fontSize = document.getElementById('textSize').value; layers[activeLayerIdx].color = document.getElementById('textColor').value; render(); } }
+    function addTextLayer() { saveState(); const cx=(canvas.width/2-offsetX)/scale, cy=(canvas.height/2-offsetY)/scale; layers.unshift({ type:'text', name:'TEKS BARU', visible:true, text:'TEKS BARU', fontSize:50, color:'#ffffff', align:'center', rotation:0, corners:[{x:cx-150,y:cy-30},{x:cx+150,y:cy-30},{x:cx+150,y:cy+30},{x:cx-150,y:cy+30}] }); activeLayerIdx=0; updateUI(); render(); }
+    function setEditMode(m) { editMode = m; if(m==='crop' && activeLayerIdx!==-1) { const l=layers[activeLayerIdx]; l._visualBounds={minX:l.corners[0].x, minY:l.corners[0].y, maxX:l.corners[1].x, maxY:l.corners[2].y}; } document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.id === 'btn-'+m)); document.getElementById('btn-apply-crop').classList.toggle('hidden', m!=='crop'); render(); }
+    function applyCrop() { if (activeLayerIdx === -1 || editMode !== 'crop') return; saveState(); const l = layers[activeLayerIdx]; const temp = document.createElement('canvas'); const tw = Math.abs(l.corners[1].x-l.corners[0].x), th = Math.abs(l.corners[2].y-l.corners[1].y); temp.width = tw; temp.height = th; const tctx = temp.getContext('2d'); const sw = (l._visualBounds.maxX-l._visualBounds.minX), sh = (l._visualBounds.maxY-l._visualBounds.minY); tctx.drawImage(l.img, (l.corners[0].x-l._visualBounds.minX)*(l.img.width/sw), (l.corners[0].y-l._visualBounds.minY)*(l.img.height/sh), tw*(l.img.width/sw), th*(l.img.height/sh), 0, 0, tw, th); const img = new Image(); img.src = temp.toDataURL(); img.onload = () => { l.img = img; l._origRatio = tw/th; setEditMode('transform'); render(); }; }
+    function downloadJPG() {
+        if (layers.length === 0) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        layers.forEach(l => l.corners.forEach(p => { minX = Math.min(minX, p.x); minY = Math.min(minY, p.y); maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y); }));
+        const pad = 20, exportCanvas = document.createElement('canvas'), exportCtx = exportCanvas.getContext('2d');
+        exportCanvas.width = (maxX-minX)+(pad*2); exportCanvas.height = (maxY-minY)+(pad*2);
+        exportCtx.fillStyle = "#ffffff"; exportCtx.fillRect(0,0,exportCanvas.width,exportCanvas.height); exportCtx.translate(-minX+pad, -minY+pad);
+        layers.slice().reverse().forEach(l => { if (!l.visible) return; exportCtx.save(); const c = getCenter(l.corners); exportCtx.translate(c.x, c.y); exportCtx.rotate(l.rotation||0); exportCtx.translate(-c.x, -c.y); if (l.type === 'image') { if (l.isSkewed) drawSkewed(l, exportCtx); else exportCtx.drawImage(l.img, l.corners[0].x, l.corners[0].y, l.corners[1].x-l.corners[0].x, l.corners[2].y-l.corners[1].y); } else { exportCtx.fillStyle = l.color; exportCtx.font = `900 ${l.fontSize}px Inter`; exportCtx.textAlign = l.align||'center'; exportCtx.fillText(l.text, c.x, c.y + l.fontSize/3.5); } exportCtx.restore(); });
+        const link = document.createElement('a'); link.download = 'studio-pro-final.jpg'; link.href = exportCanvas.toDataURL('image/jpeg', 0.95); link.click();
+    }
+
+    // --- UTILS ---
+    function toggleVis(i, e) { e.stopPropagation(); layers[i].visible = !layers[i].visible; updateUI(); render(); }
+    function deleteLayer(i, e) { e.stopPropagation(); saveState(); layers.splice(i, 1); activeLayerIdx = -1; updateUI(); render(); }
+    function getMouse(e) { const r = canvas.getBoundingClientRect(); return { x: (e.clientX-r.left-offsetX)/scale, y: (e.clientY-r.top-offsetY)/scale }; }
+    function getRotatedMouse(m, c, ang) { const cos = Math.cos(ang), sin = Math.sin(ang); return { x: cos*(m.x-c.x)-sin*(m.y-c.y)+c.x, y: sin*(m.x-c.x)+cos*(m.y-c.y)+c.y }; }
+    function getCenter(pts) { return { x: pts.reduce((s,p)=>s+p.x,0)/4, y: pts.reduce((s,p)=>s+p.y,0)/4 }; }
+    function isInside(p, pts) { let inside = false; for (let i = 0, j = pts.length-1; i < pts.length; j = i++) if (((pts[i].y > p.y) !== (pts[j].y > p.y)) && (p.x < (pts[j].x - pts[i].x) * (p.y - pts[i].y) / (pts[j].y - pts[i].y) + pts[i].x)) inside = !inside; return inside; }
+    function performScale(l, idx, rm, prop) { const pts = l.corners, pivot = pts[(idx+2)%4]; let w = Math.abs(rm.x-pivot.x), h = Math.abs(rm.y-pivot.y); if (prop) { const r = l._origRatio || (w/h); if (w/h > r) w = h*r; else h = w/r; } const sx = rm.x > pivot.x ? 1 : -1, sy = rm.y > pivot.y ? 1 : -1; pts[idx].x = pivot.x + w*sx; pts[idx].y = pivot.y + h*sy; if (idx === 0) { pts[1].y = pts[0].y; pts[3].x = pts[0].x; } else if (idx === 1) { pts[0].y = pts[1].y; pts[2].x = pts[1].x; } else if (idx === 2) { pts[3].y = pts[2].y; pts[1].x = pts[2].x; } else if (idx === 3) { pts[2].y = pts[3].y; pts[0].x = pts[3].x; } }
+    function handleManualUpload(input) { Array.from(input.files).forEach(file => { const r = new FileReader(); r.onload = (e) => { const img = new Image(); img.onload = () => { saveState(); const ratio = img.width/img.height, cx=(canvas.width/2-offsetX)/scale, cy=(canvas.height/2-offsetY)/scale; layers.unshift({ type:'image', name:file.name, img, visible:true, _origRatio:ratio, rotation:0, corners:[{x:cx-150,y:cy-150/ratio},{x:cx+150,y:cy-150/ratio},{x:cx+150,y:cy+150/ratio},{x:cx-150,y:cy+150/ratio}] }); activeLayerIdx=0; updateUI(); render(); }; img.src = e.target.result; }; r.readAsDataURL(file); }); }
+    dropZone.onwheel = (e) => { e.preventDefault(); const factor = Math.pow(1.1, -e.deltaY / 200); const mx = e.clientX-dropZone.offsetLeft, my = e.clientY-dropZone.offsetTop; const bx = (mx-offsetX)/scale, by = (my-offsetY)/scale; scale *= factor; offsetX = mx-bx*scale; offsetY = my-by*scale; render(); };
+    dropZone.ondragover = (e) => e.preventDefault();
+    dropZone.ondrop = (e) => { e.preventDefault(); handleManualUpload(e.dataTransfer); };
+</script>
+</body>
+</html>

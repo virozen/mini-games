@@ -1,406 +1,413 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Truth or Dare</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Truth or Dare - Random Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: #f8fafc;
+            touch-action: manipulation;
+        }
 
-<style>
-  * {
-    box-sizing: border-box;
-    font-family: Inter, system-ui, sans-serif;
-  }
+        .gradient-bg { 
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); 
+        }
 
-  body {
-    margin: 0;
-    height: 100vh;
-    background: linear-gradient(135deg, #7f7cff, #9ef0e3, #ff9acb);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+        /* Animasi Kemunculan Kartu yang Smooth */
+        .card-anim { 
+            animation: springIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; 
+        }
 
-  .card {
-    width: 340px;
-    background: radial-gradient(circle at top, #2a0a4a, #0b0318);
-    border-radius: 20px;
-    padding: 24px;
-    color: white;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.35);
-    text-align: center;
-  }
+        @keyframes springIn {
+            0% { transform: translateY(30px) scale(0.9); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
 
-  select, input {
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 999px;
-    border: none;
-    outline: none;
-    margin-bottom: 12px;
-  }
+        /* Hover Effect untuk Tombol Utama */
+        .btn-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
 
-  .player-board {
-    font-weight: 600;
-    font-size: 18px;
-    margin-bottom: 14px;
-    min-height: 24px;
-  }
+        .btn-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -5px rgba(99, 102, 241, 0.4);
+            filter: brightness(110%);
+        }
 
-  .shuffle {
-    animation: flicker 0.08s infinite;
-  }
+        .btn-hover:active {
+            transform: translateY(-1px) scale(0.98);
+        }
 
-  @keyframes flicker {
-    0% { opacity: 0.3; }
-    50% { opacity: 1; }
-    100% { opacity: 0.3; }
-  }
+        /* Efek Glow untuk Tombol Truth/Dare */
+        .truth-btn:hover {
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+        }
 
-  .question {
-    font-size: 20px;
-    font-weight: 600;
-    line-height: 1.4;
-    margin: 24px 0;
-    min-height: 90px;
-  }
+        .dare-btn:hover {
+            box-shadow: 0 0 25px rgba(244, 63, 94, 0.4);
+        }
 
-  .actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-  }
+        /* Floating Animation untuk Kartu Instruksi */
+        .floating-card {
+            animation: float 3s ease-in-out infinite;
+        }
 
-  button {
-    flex: 1;
-    padding: 12px 0;
-    border-radius: 999px;
-    border: none;
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-    color: white;
-    background: linear-gradient(135deg, #6f2cff, #b45cff);
-  }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
 
-  button.secondary {
-    background: linear-gradient(135deg, #ff3d81, #ff7bb3);
-  }
+        /* Custom Input Focus */
+        .player-name {
+            transition: all 0.3s ease;
+        }
 
-  button.full {
-    width: 100%;
-  }
-
-  .hidden {
-    display: none;
-  }
-</style>
+        .player-name:focus {
+            background: white;
+            padding-left: 1.5rem;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+    </style>
 </head>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-<body>
+    <div id="setup-screen" class="bg-white p-6 sm:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md card-anim border border-gray-100">
+        <h1 class="text-3xl font-extrabold text-center mb-2 text-indigo-600">Truth or Dare</h1>
+        <p class="text-gray-400 text-center mb-8 text-sm">Masukkan nama pemain</p>
+        
+        <div id="player-inputs" class="space-y-3 mb-6 max-h-[30vh] overflow-y-auto px-1">
+            <input type="text" placeholder="Nama Pemain 1" class="player-name w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-indigo-500 outline-none transition-all">
+            <input type="text" placeholder="Nama Pemain 2" class="player-name w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-indigo-500 outline-none transition-all">
+        </div>
 
-<div class="card">
-
-  <!-- SETUP -->
-  <div id="setup">
-    <h2>Truth or Dare</h2>
-    <input id="p1" placeholder="Player 1 name">
-    <input id="p2" placeholder="Player 2 name">
-    <button class="full" onclick="startGame()">Start</button>
-  </div>
-
-  <!-- GAME -->
-  <div id="game" class="hidden">
-    <select id="level">
-      <option value="soft">Sensual</option>
-      <option value="spicy">Hot</option>
-      <option value="wild">Wild</option>
-    </select>
-
-    <div id="playerBoard" class="player-board">---</div>
-
-    <div id="question" class="question">
-      Click Roll to start
+        <div class="space-y-3">
+            <button onclick="addPlayerInput()" class="w-full py-3 border-2 border-dashed border-indigo-200 text-indigo-500 rounded-2xl font-bold hover:bg-indigo-50">+ Tambah Pemain</button>
+            <button onclick="startGame()" class="w-full py-4 gradient-bg text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all text-lg">Mulai Permainan</button>
+        </div>
     </div>
 
-    <button id="rollBtn" class="full" onclick="rollPlayer()">Roll</button>
+    <div id="game-screen" class="hidden bg-white p-6 sm:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-lg card-anim relative border border-gray-100">
+        
+        <div class="grid grid-cols-3 gap-2 mb-10">
+            <button onclick="setLevel('soft')" id="btn-soft" class="level-btn py-2 rounded-xl text-[10px] font-black border-2 border-emerald-500 bg-emerald-500 text-white transition-all">SOFT</button>
+            <button onclick="setLevel('spicy')" id="btn-spicy" class="level-btn py-2 rounded-xl text-[10px] font-black border-2 border-orange-400 text-orange-400 transition-all">SPICY</button>
+            <button onclick="setLevel('wild')" id="btn-wild" class="level-btn py-2 rounded-xl text-[10px] font-black border-2 border-rose-500 text-rose-500 transition-all">WILD</button>
+        </div>
 
-    <div id="choice" class="actions hidden">
-      <button onclick="showTruth()">Truth</button>
-      <button class="secondary" onclick="showDare()">Dare</button>
+        <div class="text-center">
+            <h2 id="turn-display" class="text-sm text-gray-400 font-semibold mb-2 uppercase tracking-widest">Giliran</h2>
+            <div id="player-display" class="text-3xl sm:text-5xl font-black text-indigo-700 mb-12 truncate px-4">---</div>
+
+            <div id="instruction-card" class="hidden mb-10 p-6 sm:p-8 bg-indigo-50 rounded-3xl border-2 border-indigo-100 min-h-[180px] flex items-center justify-center card-anim">
+                <p id="instruction-text" class="text-base sm:text-xl text-indigo-900 font-semibold leading-relaxed"></p>
+            </div>
+
+            <div id="roll-section">
+                <button onclick="rollPlayer()" class="w-full py-5 gradient-bg text-white rounded-3xl font-bold text-xl shadow-xl active:scale-95 transition-all">
+                    ROLL PEMAIN
+                </button>
+            </div>
+
+            <div id="choice-section" class="hidden grid grid-cols-2 gap-4">
+                <button onclick="getInstruction('truth')" class="py-5 bg-emerald-500 text-white rounded-3xl font-bold text-lg shadow-lg active:scale-95 transition-all">TRUTH</button>
+                <button onclick="getInstruction('dare')" class="py-5 bg-rose-500 text-white rounded-3xl font-bold text-lg shadow-lg active:scale-95 transition-all">DARE</button>
+            </div>
+
+            <button id="next-turn-btn" onclick="resetTurn()" class="hidden w-full mt-8 py-3 text-indigo-400 font-bold hover:text-indigo-600 transition-all text-sm">
+                Lanjut ke Pemain Berikutnya →
+            </button>
+        </div>
     </div>
-  </div>
 
-</div>
+    <script>
+        const gameData = {
+          "soft": {
+            "truth": [
+              "Apa hal pertama yang kamu perhatikan saat bertemu orang baru?",
+              "Apa hobi rahasia yang tidak banyak orang ketahui?",
+              "Siapa orang terakhir yang kamu cari namanya di Instagram/sosial media?",
+              "Apa ketakutan paling konyol yang masih kamu miliki sampai sekarang?",
+              "Apa lagu paling memalukan yang diam-diam kamu sukai (guilty pleasure)?",
+              "Apa hal paling nekat yang pernah kamu lakukan demi menarik perhatian seseorang?",
+              "Jika kamu bisa bertukar nyawa dengan seseorang selama sehari, siapa itu?",
+              "Apa pujian terbaik yang pernah kamu terima dari orang asing?",
+              "Pernahkah kamu pura-pura tidak melihat seseorang di jalan agar tidak perlu menyapa?",
+              "Apa aplikasi di ponselmu yang paling sering kamu gunakan?",
+              "Apa kebiasaan buruk yang ingin sekali kamu hilangkan?",
+              "Apa hal pertama yang kamu lakukan saat bangun tidur?",
+              "Pernahkah kamu menangis saat menonton film animasi?",
+              "Apa pakaian paling aneh yang pernah kamu beli tapi tidak pernah dipakai?",
+              "Apa makanan yang menurut orang lain enak, tapi kamu sangat membencinya?",
+              "Apa impian masa kecilmu yang paling tidak masuk akal?",
+              "Siapa selebriti yang menjadi 'crush' pertamamu?",
+              "Apa hal paling memalukan yang pernah terjadi padamu di sekolah?",
+              "Jika kamu menang lotre hari ini, apa barang pertama yang akan kamu beli?",
+              "Apa kata atau kalimat yang paling sering kamu ucapkan tanpa sadar?",
+              "Apa hal yang paling membuatmu merasa percaya diri?",
+              "Pernahkah kamu mengirim pesan ke orang yang salah?",
+              "Apa film yang bisa kamu tonton berulang-ulang tanpa merasa bosan?",
+              "Apa talenta tersembunyimu yang paling tidak berguna?",
+              "Apa hal yang paling kamu rindukan dari masa kecil?",
+              "Di mana tempat impianmu untuk tinggal saat masa tua nanti?",
+              "Apa pencapaian yang membuatmu merasa paling bangga minggu ini?",
+              "Apa jenis kado yang paling kamu benci untuk diterima?",
+              "Apa kata-kata motivasi yang menurutmu paling klise tapi benar?",
+              "Apa nama panggilan paling lucu atau aneh yang pernah kamu miliki?"
+            ],
+            "dare": [
+              "Berikan pijatan bahu kepada orang di sebelah kananmu selama 1 menit.",
+              "Tatap mata orang di depanmu selama 30 detik tanpa tertawa.",
+              "Tunjukkan foto paling memalukan di galeri ponselmu.",
+              "Lakukan kesan/impersonate salah satu pemain di sini sampai ada yang bisa menebaknya.",
+              "Kirim pesan teks 'Halo' ke orang ke-5 di daftar chat WhatsApp-mu.",
+              "Berikan 3 pujian tulus kepada orang di sebelah kirimu.",
+              "Berbicara dengan aksen asing (misal: aksen Inggris atau Medok) selama dua putaran.",
+              "Rapikan rambut orang di sebelahmu menggunakan jari tanganmu.",
+              "Tuliskan namamu di udara menggunakan hidung.",
+              "Lakukan 'moonwalk' atau tarian lucu selama 30 detik.",
+              "Biarkan orang lain mengirimkan satu emoji bebas dari ponselmu ke siapa saja.",
+              "Tunjukkan video terakhir yang kamu tonton di YouTube.",
+              "Bacakan bio Instagram-mu dengan suara opera.",
+              "Biarkan seseorang merias wajahmu menggunakan satu alat makeup (jika ada) atau pulpen.",
+              "Tunjukkan ekspresi wajahmu saat sedang sangat lapar.",
+              "Bernyanyilah seperti penyanyi rock selama 15 detik.",
+              "Lakukan plank selama 30 detik sambil menceritakan harimu.",
+              "Ceritakan satu fakta menarik tentang dirimu yang tidak diketahui orang di ruangan ini.",
+              "Pijat tanganmu sendiri dengan gerakan yang sangat dramatis.",
+              "Buatkan segelas air putih untuk orang yang paling haus di sini.",
+              "Lakukan pose model fashion show selama satu putaran permainan.",
+              "Gunakan kaus kaki di tanganmu selama 10 menit ke depan.",
+              "Sandarkan kepalamu di bahu teman di sebelahmu selama 1 menit.",
+              "Berikan 'high-five' kepada semua orang dengan gaya yang berbeda-beda.",
+              "Biarkan orang lain membacakan satu pesan masuk terakhir di ponselmu.",
+              "Lakukan pijatan kepala ringan untuk dirimu sendiri sambil memuji diri sendiri.",
+              "Bisikkan kata 'semangat' ke telinga orang di sebelahmu.",
+              "Berikan pelukan grup (group hug) untuk semua orang yang bermain.",
+              "Tirukan suara hewan pilihan orang lain sampai mereka puas.",
+              "Biarkan orang lain mengganti foto profil WhatsApp-mu selama 5 menit."
+            ]
+          },
+          "spicy": {
+            "truth": [
+              "Apa pendapat jujurmu tentang gaya berpakaian orang di sebelah kananmu?",
+              "Berikan skor 1-10 untuk kemampuan mengobrol orang di depanmu.",
+              "Pernahkah kamu merasa iri dengan pencapaian teman baikmu sendiri?",
+              "Apa hal yang paling membuatmu merasa 'ilfeel' saat sedang pendekatan (PDKT)?",
+              "Pernahkah kamu berbohong demi menghindari acara kumpul-kumpul?",
+              "Siapa orang di ruangan ini yang menurutmu paling pintar menyimpan rahasia?",
+              "Apa satu rahasia kecil yang belum pernah kamu ceritakan ke orang tuamu?",
+              "Pernahkah kamu stalking mantanmu dalam satu minggu terakhir?",
+              "Apa pendapatmu tentang 'friendzone'? Pernahkah kamu mengalaminya?",
+              "Apa satu hal yang paling kamu benci dari dirimu sendiri?",
+              "Seberapa sering kamu bercermin dalam sehari?",
+              "Apa barang paling mahal yang pernah kamu beli tapi ternyata tidak berguna?",
+              "Apa yang akan kamu lakukan jika kamu menemukan uang 1 juta di jalan?",
+              "Siapa orang yang paling sering kamu kirimi pesan saat sedang sedih?",
+              "Apa hal paling aneh yang pernah kamu lakukan saat sendirian di kamar?",
+              "Pernahkah kamu pura-pura sakit agar bisa bolos kerja/sekolah?",
+              "Apa jenis orang yang paling tidak bisa kamu ajak bekerja sama?",
+              "Apa satu hal yang ingin kamu katakan pada mantanmu sekarang?",
+              "Apa film yang menurutmu sangat buruk tapi semua orang menyukainya?",
+              "Apa kebohongan terakhir yang kamu ucapkan hari ini?",
+              "Di mana bagian tubuhmu yang paling sering kamu banggakan (mata, rambut, dll)?",
+              "Apakah kamu lebih suka orang yang humoris atau orang yang serius tapi perhatian?",
+              "Apa yang kamu pikirkan saat pertama kali melihat orang di sebelah kirimu?",
+              "Apa bagian dari pekerjaan/studimu yang paling ingin kamu tinggalkan?",
+              "Apa satu hal yang belum pernah kita lakukan bersama tapi kamu sangat ingin mencobanya?",
+              "Pernahkah kamu merasa salah kostum di sebuah acara besar?",
+              "Apa reaksi terjujurmu saat menerima kado yang tidak kamu sukai?",
+              "Apa satu perintah yang ingin kamu berikan padaku jika aku adalah asistenmu sehari?",
+              "Sebutkan satu tren sosial media yang menurutmu sangat mengganggu.",
+              "Apa momen yang membuatmu merasa paling malu tapi sekarang terasa lucu?"
+            ],
+            "dare": [
+              "Lakukan dance TikTok yang populer (meskipun tanpa musik) selama 30 detik.",
+              "Buka tas atau dompetmu dan tunjukkan 3 benda paling aneh di dalamnya.",
+              "Tantang seseorang di sini untuk adu panco (arm wrestling).",
+              "Pijat kaki (telapak kaki) orang di sebelahmu (dengan kaus kaki tetap dipakai) selama 1 menit.",
+              "Biarkan orang lain melihat daftar pencarian (search history) di browser ponselmu.",
+              "Tirukan gaya bicara salah satu selebriti terkenal sampai semua orang tahu siapa itu.",
+              "Lakukan dirty talk tapi hanya menggunakan nama-nama bumbu dapur.",
+              "Berikan pujian yang sangat hiperbolis (berlebihan) kepada orang di depanmu.",
+              "Gunakan jari tanganmu untuk membentuk simbol hati dan tempelkan di pipi orang lain.",
+              "Tunjukkan pesan terakhir yang kamu kirim ke gebetan atau pasanganmu.",
+              "Lakukan push-up 10 kali sambil menyebutkan nama-nama mantan (atau teman SD).",
+              "Biarkan seseorang menggambar sesuatu yang kecil di lenganmu menggunakan pulpen.",
+              "Makan satu sendok saus atau sambal yang ada di meja.",
+              "Tunjukkan riwayat pesanan (order history) di aplikasi ojek online-mu.",
+              "Lakukan 'catwalk' dari satu ujung ruangan ke ujung lainnya.",
+              "Biarkan orang lain memposting satu angka (0-9) di status media sosialmu tanpa penjelasan.",
+              "Usap rambut orang di sebelahmu dan katakan 'Kamu hari ini keren sekali'.",
+              "Ceritakan satu kejadian di mana kamu pernah tertangkap basah melakukan sesuatu yang memalukan.",
+              "Berikan pijatan punggung yang kuat kepada teman di sebelahmu selama 2 menit.",
+              "Coba makan satu potong makanan tanpa menggunakan tangan.",
+              "Tunjukkan wajah 'bangun tidur' terbaikmu sekarang.",
+              "Berikan pelukan kepada orang yang paling jarang kamu ajak bicara di sini.",
+              "Biarkan orang lain mengatur status hubunganmu di media sosial selama 10 menit.",
+              "Lakukan gerakan yoga yang paling sulit yang kamu tahu.",
+              "Gunakan napasmu untuk meniup telinga orang di sebelahmu (pelan saja).",
+              "Katakan dengan jujur siapa orang yang menurutmu paling menarik di ruangan ini.",
+              "Biarkan orang lain membongkar isi chat terakhirmu dengan sahabatmu.",
+              "Berikan tepuk tangan yang sangat meriah setiap kali ada yang selesai bicara selama 5 menit.",
+              "Tunjukkan ekspresi wajah 'marah' yang paling tidak menakutkan.",
+              "Mintalah izin untuk meminjam satu barang dari orang lain dan pakailah selama sisa permainan."
+            ]
+          },
+          "wild": {
+            "truth": [
+              "Apa hal paling konyol yang pernah kamu lakukan saat sedang mabuk/terlalu lelah?",
+              "Jika kita semua terjebak di pulau terpencil, siapa yang menurutmu akan bertahan paling lama?",
+              "Apa pendapat jujurmu tentang politik atau isu sosial yang sedang viral?",
+              "Pernahkah kamu tidak mandi selama lebih dari 3 hari?",
+              "Apa satu hal yang kamu anggap 'aneh' tapi menurut orang lain normal?",
+              "Pernahkah kamu melihat dirimu di cermin dan bicara pada diri sendiri selama lebih dari 5 menit?",
+              "Siapa orang di ruangan ini yang paling ingin kamu ajak bertukar posisi pekerjaan?",
+              "Jika kamu jadi penguasa dunia selama sehari, apa aturan pertama yang kamu buat?",
+              "Apa rahasia memalukan yang pernah kamu sembunyikan dari sahabatmu sendiri?",
+              "Apa pendapatmu tentang kencan buta (blind date)? Pernahkah kamu mencobanya?",
+              "Seberapa sering kamu mencari namamu sendiri di mesin pencari Google?",
+              "Apa satu hal yang menurutmu 'norak' namun kamu diam-diam menikmatinya?",
+              "Pernahkah kamu berfantasi ingin menjadi pahlawan di situasi yang berbahaya?",
+              "Apa suara yang paling kamu benci (misal: suara orang mengunyah)?",
+              "Apa satu hal yang menurutmu sangat menantang tapi ingin kamu lakukan sebelum mati?",
+              "Bagaimana perasaanmu jika kamu kehilangan semua followers media sosialmu besok?",
+              "Apa pendapatmu tentang orang yang suka pamer kekayaan di internet?",
+              "Berapa lama kamu bisa bertahan tanpa memegang ponsel dalam sehari?",
+              "Apa satu hal yang kamu lihat di film yang menurutmu sangat tidak mungkin terjadi di dunia nyata?",
+              "Apa bagian dari kepribadianmu yang paling ingin kamu ubah jika bisa?",
+              "Sebutkan satu kata yang menurutmu paling sulit diucapkan dalam bahasa asing.",
+              "Pernahkah kamu merasa sangat percaya diri padahal sebenarnya kamu salah besar?",
+              "Apa ambisi paling 'gila' yang pernah kamu miliki?",
+              "Bagaimana menurutmu tentang mandi di bawah hujan saat sudah dewasa?",
+              "Apa satu hal yang bisa aku lakukan untuk membuatmu sangat tertawa sampai menangis?",
+              "Apa jenis pakaian yang menurutmu paling tidak cocok kamu pakai?",
+              "Pernahkah kamu ingin mencoba olahraga ekstrem seperti skydiving?",
+              "Apa satu hal yang ingin kamu lakukan tapi kamu takut dianggap aneh oleh publik?",
+              "Seberapa besar pengaruh pendapat orang tua terhadap keputusan hidupmu?",
+              "Apa yang paling kamu harapkan terjadi dalam hidupmu tahun depan?"
+            ],
+            "dare": [
+              "Tutup matamu dan biarkan orang lain memberimu makanan untuk ditebak rasanya.",
+              "Lakukan tantangan 'lempar botol' sampai berhasil baru boleh berhenti.",
+              "Biarkan orang lain mengikat tali sepatumu menjadi satu selama satu putaran.",
+              "Lakukan 'scavenger hunt' singkat: Temukan 3 benda berwarna merah di ruangan ini dalam 10 detik.",
+              "Makan satu siung bawang putih atau irisan lemon (jika ada).",
+              "Lakukan squat 20 kali sambil bernyanyi lagu kebangsaan.",
+              "Biarkan orang lain menata rambutmu menjadi gaya yang paling aneh.",
+              "Bisikkan cerita hantu paling seram yang kamu tahu ke orang di sebelahmu.",
+              "Gunakan es batu di telapak tanganmu dan tahan selama 1 menit tanpa melepaskannya.",
+              "Biarkan orang lain melakukan apa pun pada tatanan rambutmu (tanpa memotongnya).",
+              "Berikan ciuman di udara (blow kiss) kepada setiap orang di ruangan ini.",
+              "Lepaskan sepatumu dan gunakan sebagai telepon selama 2 menit.",
+              "Lakukan stand-up comedy selama 1 menit (tidak harus lucu).",
+              "Biarkan orang lain menaruh stiker atau isolasi di bajumu selama sisa permainan.",
+              "Gunakan jarimu untuk menggambar 'kumis' di wajahmu sendiri menggunakan pulpen.",
+              "Tunjukkan satu gerakan tari paling aneh yang pernah kamu buat.",
+              "Teriakkan 'Aku bebas!' dari jendela atau pintu (jika memungkinkan dan tidak mengganggu).",
+              "Berikan gigitan kecil pada makanan milik orang lain (atas izin).",
+              "Biarkan orang lain memutar tubuhmu 10 kali lalu cobalah berjalan lurus.",
+              "Lakukan sesi 'tatap-tatapan' dengan cermin dan pujilah dirimu sendiri selama 2 menit.",
+              "Berikan komentar 'Keren!' di 3 postingan Instagram pertama di feed-mu.",
+              "Peragakan cara orang sedang tenggelam atau dikejar lebah dengan sangat dramatis.",
+              "Biarkan orang lain mengatur nada dering ponselmu menjadi suara yang lucu.",
+              "Gunakan jari tanganmu untuk meniru gerakan laba-laba di lengan orang lain.",
+              "Bisikkan satu kata rahasia yang tidak masuk akal ke semua orang.",
+              "Biarkan orang lain memberikan perintah (dare) tambahan untukmu selama 2 menit.",
+              "Lakukan jalan jongkok mengelilingi area permainan satu kali.",
+              "Tunjukkan cara paling unik untuk membuka tutup botol tanpa menggunakan alat pembuka.",
+              "Lakukan kontak mata intens dengan kamera ponsel (selfie mode) selama 1 menit.",
+              "Hentikan permainan sejenak dan buatkan satu camilan sederhana untuk semua orang!"
+            ]
+          }
+        };
 
-<script>
-  /* DATA */
-  const data = {
-  "soft": {
-    "truth": [
-      "Apa hal pertama yang kamu perhatikan saat bertemu orang baru?",
-      "Apa hobi rahasia yang tidak banyak orang ketahui?",
-      "Siapa orang terakhir yang kamu cari namanya di Instagram/sosial media?",
-      "Apa ketakutan paling konyol yang masih kamu miliki sampai sekarang?",
-      "Apa lagu paling memalukan yang diam-diam kamu sukai (guilty pleasure)?",
-      "Apa hal paling nekat yang pernah kamu lakukan demi menarik perhatian seseorang?",
-      "Jika kamu bisa bertukar nyawa dengan seseorang selama sehari, siapa itu?",
-      "Apa pujian terbaik yang pernah kamu terima dari orang asing?",
-      "Pernahkah kamu pura-pura tidak melihat seseorang di jalan agar tidak perlu menyapa?",
-      "Apa aplikasi di ponselmu yang paling sering kamu gunakan?",
-      "Apa kebiasaan buruk yang ingin sekali kamu hilangkan?",
-      "Apa hal pertama yang kamu lakukan saat bangun tidur?",
-      "Pernahkah kamu menangis saat menonton film animasi?",
-      "Apa pakaian paling aneh yang pernah kamu beli tapi tidak pernah dipakai?",
-      "Apa makanan yang menurut orang lain enak, tapi kamu sangat membencinya?",
-      "Apa impian masa kecilmu yang paling tidak masuk akal?",
-      "Siapa selebriti yang menjadi 'crush' pertamamu?",
-      "Apa hal paling memalukan yang pernah terjadi padamu di sekolah?",
-      "Jika kamu menang lotre hari ini, apa barang pertama yang akan kamu beli?",
-      "Apa kata atau kalimat yang paling sering kamu ucapkan tanpa sadar?",
-      "Apa hal yang paling membuatmu merasa percaya diri?",
-      "Pernahkah kamu mengirim pesan ke orang yang salah?",
-      "Apa film yang bisa kamu tonton berulang-ulang tanpa merasa bosan?",
-      "Apa talenta tersembunyimu yang paling tidak berguna?",
-      "Apa hal yang paling kamu rindukan dari masa kecil?",
-      "Di mana tempat impianmu untuk tinggal saat masa tua nanti?",
-      "Apa pencapaian yang membuatmu merasa paling bangga minggu ini?",
-      "Apa jenis kado yang paling kamu benci untuk diterima?",
-      "Apa kata-kata motivasi yang menurutmu paling klise tapi benar?",
-      "Apa nama panggilan paling lucu atau aneh yang pernah kamu miliki?"
-    ],
-    "dare": [
-      "Berikan pijatan bahu kepada orang di sebelah kananmu selama 1 menit.",
-      "Tatap mata orang di depanmu selama 30 detik tanpa tertawa.",
-      "Tunjukkan foto paling memalukan di galeri ponselmu.",
-      "Lakukan kesan/impersonate salah satu pemain di sini sampai ada yang bisa menebaknya.",
-      "Kirim pesan teks 'Halo' ke orang ke-5 di daftar chat WhatsApp-mu.",
-      "Berikan 3 pujian tulus kepada orang di sebelah kirimu.",
-      "Berbicara dengan aksen asing (misal: aksen Inggris atau Medok) selama dua putaran.",
-      "Rapikan rambut orang di sebelahmu menggunakan jari tanganmu.",
-      "Tuliskan namamu di udara menggunakan hidung.",
-      "Lakukan 'moonwalk' atau tarian lucu selama 30 detik.",
-      "Biarkan orang lain mengirimkan satu emoji bebas dari ponselmu ke siapa saja.",
-      "Tunjukkan video terakhir yang kamu tonton di YouTube.",
-      "Bacakan bio Instagram-mu dengan suara opera.",
-      "Biarkan seseorang merias wajahmu menggunakan satu alat makeup (jika ada) atau pulpen.",
-      "Tunjukkan ekspresi wajahmu saat sedang sangat lapar.",
-      "Bernyanyilah seperti penyanyi rock selama 15 detik.",
-      "Lakukan plank selama 30 detik sambil menceritakan harimu.",
-      "Ceritakan satu fakta menarik tentang dirimu yang tidak diketahui orang di ruangan ini.",
-      "Pijat tanganmu sendiri dengan gerakan yang sangat dramatis.",
-      "Buatkan segelas air putih untuk orang yang paling haus di sini.",
-      "Lakukan pose model fashion show selama satu putaran permainan.",
-      "Gunakan kaus kaki di tanganmu selama 10 menit ke depan.",
-      "Sandarkan kepalamu di bahu teman di sebelahmu selama 1 menit.",
-      "Berikan 'high-five' kepada semua orang dengan gaya yang berbeda-beda.",
-      "Biarkan orang lain membacakan satu pesan masuk terakhir di ponselmu.",
-      "Lakukan pijatan kepala ringan untuk dirimu sendiri sambil memuji diri sendiri.",
-      "Bisikkan kata 'semangat' ke telinga orang di sebelahmu.",
-      "Berikan pelukan grup (group hug) untuk semua orang yang bermain.",
-      "Tirukan suara hewan pilihan orang lain sampai mereka puas.",
-      "Biarkan orang lain mengganti foto profil WhatsApp-mu selama 5 menit."
-    ]
-  },
-  "spicy": {
-    "truth": [
-      "Apa pendapat jujurmu tentang gaya berpakaian orang di sebelah kananmu?",
-      "Berikan skor 1-10 untuk kemampuan mengobrol orang di depanmu.",
-      "Pernahkah kamu merasa iri dengan pencapaian teman baikmu sendiri?",
-      "Apa hal yang paling membuatmu merasa 'ilfeel' saat sedang pendekatan (PDKT)?",
-      "Pernahkah kamu berbohong demi menghindari acara kumpul-kumpul?",
-      "Siapa orang di ruangan ini yang menurutmu paling pintar menyimpan rahasia?",
-      "Apa satu rahasia kecil yang belum pernah kamu ceritakan ke orang tuamu?",
-      "Pernahkah kamu stalking mantanmu dalam satu minggu terakhir?",
-      "Apa pendapatmu tentang 'friendzone'? Pernahkah kamu mengalaminya?",
-      "Apa satu hal yang paling kamu benci dari dirimu sendiri?",
-      "Seberapa sering kamu bercermin dalam sehari?",
-      "Apa barang paling mahal yang pernah kamu beli tapi ternyata tidak berguna?",
-      "Apa yang akan kamu lakukan jika kamu menemukan uang 1 juta di jalan?",
-      "Siapa orang yang paling sering kamu kirimi pesan saat sedang sedih?",
-      "Apa hal paling aneh yang pernah kamu lakukan saat sendirian di kamar?",
-      "Pernahkah kamu pura-pura sakit agar bisa bolos kerja/sekolah?",
-      "Apa jenis orang yang paling tidak bisa kamu ajak bekerja sama?",
-      "Apa satu hal yang ingin kamu katakan pada mantanmu sekarang?",
-      "Apa film yang menurutmu sangat buruk tapi semua orang menyukainya?",
-      "Apa kebohongan terakhir yang kamu ucapkan hari ini?",
-      "Di mana bagian tubuhmu yang paling sering kamu banggakan (mata, rambut, dll)?",
-      "Apakah kamu lebih suka orang yang humoris atau orang yang serius tapi perhatian?",
-      "Apa yang kamu pikirkan saat pertama kali melihat orang di sebelah kirimu?",
-      "Apa bagian dari pekerjaan/studimu yang paling ingin kamu tinggalkan?",
-      "Apa satu hal yang belum pernah kita lakukan bersama tapi kamu sangat ingin mencobanya?",
-      "Pernahkah kamu merasa salah kostum di sebuah acara besar?",
-      "Apa reaksi terjujurmu saat menerima kado yang tidak kamu sukai?",
-      "Apa satu perintah yang ingin kamu berikan padaku jika aku adalah asistenmu sehari?",
-      "Sebutkan satu tren sosial media yang menurutmu sangat mengganggu.",
-      "Apa momen yang membuatmu merasa paling malu tapi sekarang terasa lucu?"
-    ],
-    "dare": [
-      "Lakukan dance TikTok yang populer (meskipun tanpa musik) selama 30 detik.",
-      "Buka tas atau dompetmu dan tunjukkan 3 benda paling aneh di dalamnya.",
-      "Tantang seseorang di sini untuk adu panco (arm wrestling).",
-      "Pijat kaki (telapak kaki) orang di sebelahmu (dengan kaus kaki tetap dipakai) selama 1 menit.",
-      "Biarkan orang lain melihat daftar pencarian (search history) di browser ponselmu.",
-      "Tirukan gaya bicara salah satu selebriti terkenal sampai semua orang tahu siapa itu.",
-      "Lakukan dirty talk tapi hanya menggunakan nama-nama bumbu dapur.",
-      "Berikan pujian yang sangat hiperbolis (berlebihan) kepada orang di depanmu.",
-      "Gunakan jari tanganmu untuk membentuk simbol hati dan tempelkan di pipi orang lain.",
-      "Tunjukkan pesan terakhir yang kamu kirim ke gebetan atau pasanganmu.",
-      "Lakukan push-up 10 kali sambil menyebutkan nama-nama mantan (atau teman SD).",
-      "Biarkan seseorang menggambar sesuatu yang kecil di lenganmu menggunakan pulpen.",
-      "Makan satu sendok saus atau sambal yang ada di meja.",
-      "Tunjukkan riwayat pesanan (order history) di aplikasi ojek online-mu.",
-      "Lakukan 'catwalk' dari satu ujung ruangan ke ujung lainnya.",
-      "Biarkan orang lain memposting satu angka (0-9) di status media sosialmu tanpa penjelasan.",
-      "Usap rambut orang di sebelahmu dan katakan 'Kamu hari ini keren sekali'.",
-      "Ceritakan satu kejadian di mana kamu pernah tertangkap basah melakukan sesuatu yang memalukan.",
-      "Berikan pijatan punggung yang kuat kepada teman di sebelahmu selama 2 menit.",
-      "Coba makan satu potong makanan tanpa menggunakan tangan.",
-      "Tunjukkan wajah 'bangun tidur' terbaikmu sekarang.",
-      "Berikan pelukan kepada orang yang paling jarang kamu ajak bicara di sini.",
-      "Biarkan orang lain mengatur status hubunganmu di media sosial selama 10 menit.",
-      "Lakukan gerakan yoga yang paling sulit yang kamu tahu.",
-      "Gunakan napasmu untuk meniup telinga orang di sebelahmu (pelan saja).",
-      "Katakan dengan jujur siapa orang yang menurutmu paling menarik di ruangan ini.",
-      "Biarkan orang lain membongkar isi chat terakhirmu dengan sahabatmu.",
-      "Berikan tepuk tangan yang sangat meriah setiap kali ada yang selesai bicara selama 5 menit.",
-      "Tunjukkan ekspresi wajah 'marah' yang paling tidak menakutkan.",
-      "Mintalah izin untuk meminjam satu barang dari orang lain dan pakailah selama sisa permainan."
-    ]
-  },
-  "wild": {
-    "truth": [
-      "Apa hal paling konyol yang pernah kamu lakukan saat sedang mabuk/terlalu lelah?",
-      "Jika kita semua terjebak di pulau terpencil, siapa yang menurutmu akan bertahan paling lama?",
-      "Apa pendapat jujurmu tentang politik atau isu sosial yang sedang viral?",
-      "Pernahkah kamu tidak mandi selama lebih dari 3 hari?",
-      "Apa satu hal yang kamu anggap 'aneh' tapi menurut orang lain normal?",
-      "Pernahkah kamu melihat dirimu di cermin dan bicara pada diri sendiri selama lebih dari 5 menit?",
-      "Siapa orang di ruangan ini yang paling ingin kamu ajak bertukar posisi pekerjaan?",
-      "Jika kamu jadi penguasa dunia selama sehari, apa aturan pertama yang kamu buat?",
-      "Apa rahasia memalukan yang pernah kamu sembunyikan dari sahabatmu sendiri?",
-      "Apa pendapatmu tentang kencan buta (blind date)? Pernahkah kamu mencobanya?",
-      "Seberapa sering kamu mencari namamu sendiri di mesin pencari Google?",
-      "Apa satu hal yang menurutmu 'norak' namun kamu diam-diam menikmatinya?",
-      "Pernahkah kamu berfantasi ingin menjadi pahlawan di situasi yang berbahaya?",
-      "Apa suara yang paling kamu benci (misal: suara orang mengunyah)?",
-      "Apa satu hal yang menurutmu sangat menantang tapi ingin kamu lakukan sebelum mati?",
-      "Bagaimana perasaanmu jika kamu kehilangan semua followers media sosialmu besok?",
-      "Apa pendapatmu tentang orang yang suka pamer kekayaan di internet?",
-      "Berapa lama kamu bisa bertahan tanpa memegang ponsel dalam sehari?",
-      "Apa satu hal yang kamu lihat di film yang menurutmu sangat tidak mungkin terjadi di dunia nyata?",
-      "Apa bagian dari kepribadianmu yang paling ingin kamu ubah jika bisa?",
-      "Sebutkan satu kata yang menurutmu paling sulit diucapkan dalam bahasa asing.",
-      "Pernahkah kamu merasa sangat percaya diri padahal sebenarnya kamu salah besar?",
-      "Apa ambisi paling 'gila' yang pernah kamu miliki?",
-      "Bagaimana menurutmu tentang mandi di bawah hujan saat sudah dewasa?",
-      "Apa satu hal yang bisa aku lakukan untuk membuatmu sangat tertawa sampai menangis?",
-      "Apa jenis pakaian yang menurutmu paling tidak cocok kamu pakai?",
-      "Pernahkah kamu ingin mencoba olahraga ekstrem seperti skydiving?",
-      "Apa satu hal yang ingin kamu lakukan tapi kamu takut dianggap aneh oleh publik?",
-      "Seberapa besar pengaruh pendapat orang tua terhadap keputusan hidupmu?",
-      "Apa yang paling kamu harapkan terjadi dalam hidupmu tahun depan?"
-    ],
-    "dare": [
-      "Tutup matamu dan biarkan orang lain memberimu makanan untuk ditebak rasanya.",
-      "Lakukan tantangan 'lempar botol' sampai berhasil baru boleh berhenti.",
-      "Biarkan orang lain mengikat tali sepatumu menjadi satu selama satu putaran.",
-      "Lakukan 'scavenger hunt' singkat: Temukan 3 benda berwarna merah di ruangan ini dalam 10 detik.",
-      "Makan satu siung bawang putih atau irisan lemon (jika ada).",
-      "Lakukan squat 20 kali sambil bernyanyi lagu kebangsaan.",
-      "Biarkan orang lain menata rambutmu menjadi gaya yang paling aneh.",
-      "Bisikkan cerita hantu paling seram yang kamu tahu ke orang di sebelahmu.",
-      "Gunakan es batu di telapak tanganmu dan tahan selama 1 menit tanpa melepaskannya.",
-      "Biarkan orang lain melakukan apa pun pada tatanan rambutmu (tanpa memotongnya).",
-      "Berikan ciuman di udara (blow kiss) kepada setiap orang di ruangan ini.",
-      "Lepaskan sepatumu dan gunakan sebagai telepon selama 2 menit.",
-      "Lakukan stand-up comedy selama 1 menit (tidak harus lucu).",
-      "Biarkan orang lain menaruh stiker atau isolasi di bajumu selama sisa permainan.",
-      "Gunakan jarimu untuk menggambar 'kumis' di wajahmu sendiri menggunakan pulpen.",
-      "Tunjukkan satu gerakan tari paling aneh yang pernah kamu buat.",
-      "Teriakkan 'Aku bebas!' dari jendela atau pintu (jika memungkinkan dan tidak mengganggu).",
-      "Berikan gigitan kecil pada makanan milik orang lain (atas izin).",
-      "Biarkan orang lain memutar tubuhmu 10 kali lalu cobalah berjalan lurus.",
-      "Lakukan sesi 'tatap-tatapan' dengan cermin dan pujilah dirimu sendiri selama 2 menit.",
-      "Berikan komentar 'Keren!' di 3 postingan Instagram pertama di feed-mu.",
-      "Peragakan cara orang sedang tenggelam atau dikejar lebah dengan sangat dramatis.",
-      "Biarkan orang lain mengatur nada dering ponselmu menjadi suara yang lucu.",
-      "Gunakan jari tanganmu untuk meniru gerakan laba-laba di lengan orang lain.",
-      "Bisikkan satu kata rahasia yang tidak masuk akal ke semua orang.",
-      "Biarkan orang lain memberikan perintah (dare) tambahan untukmu selama 2 menit.",
-      "Lakukan jalan jongkok mengelilingi area permainan satu kali.",
-      "Tunjukkan cara paling unik untuk membuka tutup botol tanpa menggunakan alat pembuka.",
-      "Lakukan kontak mata intens dengan kamera ponsel (selfie mode) selama 1 menit.",
-      "Hentikan permainan sejenak dan buatkan satu camilan sederhana untuk semua orang!"
-    ]
-  }
-};
+        let players = [];
+        let currentLevel = 'soft';
 
-  let players = [];
+        // Fungsi Helper untuk mengacak array (Fisher-Yates Shuffle)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
-  function startGame() {
-    const p1 = document.getElementById("p1").value.trim();
-    const p2 = document.getElementById("p2").value.trim();
+        function addPlayerInput() {
+            const container = document.getElementById('player-inputs');
+            const newIndex = container.children.length + 1;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = `Nama Pemain ${newIndex}`;
+            input.className = 'player-name w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl focus:border-indigo-500 outline-none transition-all';
+            container.appendChild(input);
+            container.scrollTop = container.scrollHeight;
+        }
 
-    if (!p1 || !p2) {
-      alert("Enter both names");
-      return;
-    }
+        function startGame() {
+            const inputs = document.querySelectorAll('.player-name');
+            players = Array.from(inputs).map(i => i.value.trim()).filter(n => n !== "");
+            if (players.length < 2) { alert("Minimal 2 pemain ya!"); return; }
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+        }
 
-    players = [p1, p2];
+        function setLevel(lvl) {
+            currentLevel = lvl;
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                btn.className = "level-btn py-2 rounded-xl text-[10px] font-black border-2 transition-all";
+                if(btn.id === 'btn-soft') btn.classList.add('border-emerald-500', 'text-emerald-500');
+                if(btn.id === 'btn-spicy') btn.classList.add('border-orange-400', 'text-orange-400');
+                if(btn.id === 'btn-wild') btn.classList.add('border-rose-500', 'text-rose-500');
+            });
+            const active = document.getElementById(`btn-${lvl}`);
+            const colors = { soft: 'bg-emerald-500 border-emerald-500', spicy: 'bg-orange-400 border-orange-400', wild: 'bg-rose-500 border-rose-500' };
+            active.classList.add(...colors[lvl].split(' '), 'text-white');
+        }
 
-    // RESET UI STATE
-    document.getElementById("playerBoard").textContent = "---";
-    document.getElementById("question").textContent = "Click Roll to start";
-    document.getElementById("rollBtn").classList.remove("hidden");
-    document.getElementById("choice").classList.add("hidden");
+        function rollPlayer() {
+            const display = document.getElementById('player-display');
+            let count = 0;
+            const shuffleEffect = setInterval(() => {
+                display.innerText = players[Math.floor(Math.random() * players.length)];
+                count++;
+                if (count > 12) {
+                    clearInterval(shuffleEffect);
+                    document.getElementById('roll-section').classList.add('hidden');
+                    document.getElementById('choice-section').classList.remove('hidden');
+                    document.getElementById('turn-display').innerText = "Waktunya memilih...";
+                }
+            }, 80);
+        }
 
-    document.getElementById("setup").classList.add("hidden");
-    document.getElementById("game").classList.remove("hidden");
-  }
+        function getInstruction(type) {
+            // Mengambil daftar pertanyaan dan langsung mengacaknya
+            const pool = [...gameData[currentLevel][type]];
+            const shuffledPool = shuffleArray(pool);
+            
+            // Mengambil item pertama dari hasil acakan
+            const text = shuffledPool[0];
 
-  function rollPlayer() {
-    const board = document.getElementById("playerBoard");
-    const rollBtn = document.getElementById("rollBtn");
-    const choice = document.getElementById("choice");
-    const question = document.getElementById("question");
+            document.getElementById('instruction-text').innerText = text;
+            document.getElementById('instruction-card').classList.remove('hidden');
+            document.getElementById('choice-section').classList.add('hidden');
+            document.getElementById('next-turn-btn').classList.remove('hidden');
+            document.getElementById('turn-display').innerText = type.toUpperCase();
+        }
 
-    board.classList.add("shuffle");
-    question.textContent = "";
-
-    let count = 0;
-    const interval = setInterval(() => {
-      board.textContent = players[Math.floor(Math.random() * players.length)];
-      count++;
-
-      if (count > 15) {
-        clearInterval(interval);
-        board.classList.remove("shuffle");
-
-        rollBtn.classList.add("hidden");
-        choice.classList.remove("hidden");
-      }
-    }, 80);
-  }
-
-  function showTruth() {
-    showCard("truth");
-  }
-
-  function showDare() {
-    showCard("dare");
-  }
-
-  function showCard(type) {
-    const level = document.getElementById("level").value;
-    const list = data[level][type];
-
-    document.getElementById("question").textContent =
-      list[Math.floor(Math.random() * list.length)];
-
-    document.getElementById("choice").classList.add("hidden");
-    document.getElementById("rollBtn").classList.remove("hidden");
-  }
-</script>
-
+        function resetTurn() {
+            document.getElementById('instruction-card').classList.add('hidden');
+            document.getElementById('next-turn-btn').classList.add('hidden');
+            document.getElementById('roll-section').classList.remove('hidden');
+            document.getElementById('player-display').innerText = "---";
+            document.getElementById('turn-display').innerText = "Giliran";
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQUAD SURVIVOR: INSANE MODE</title>
+    <style>
+        :root { --blood-red: #8b0000; --toxic: #39ff14; }
+        body { margin: 0; background: #050505; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Segoe UI', sans-serif; }
+        #game-wrapper { position: relative; border: 4px solid #333; overflow: hidden; }
+        #ui { position: absolute; top: 15px; left: 15px; color: #eee; pointer-events: none; z-index: 5; width: 100%; }
+        .hp-container { width: 180px; height: 12px; background: rgba(0,0,0,0.6); border: 2px solid #555; border-radius: 10px; overflow: hidden; }
+        #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #8b0000); transition: width 0.1s; }
+        #score-board { font-size: 20px; font-weight: 900; color: #f1c40f; margin-top: 5px; text-shadow: 2px 2px #000; }
+        #squad-info { font-size: 14px; color: #3498db; font-weight: bold; }
+        
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 20; text-align: center;
+        }
+        
+        .game-title {
+            font-size: 48px; font-weight: 900; color: #fff; text-transform: uppercase;
+            text-shadow: 4px 4px 0 var(--blood-red); transform: skew(-5deg); margin-bottom: 5px;
+        }
+        .game-desc { color: #aaa; font-size: 14px; max-width: 300px; margin-bottom: 25px; line-height: 1.4; }
+
+        .btn {
+            background: var(--blood-red); color: white; border: none; padding: 12px 30px;
+            font-size: 18px; font-weight: bold; cursor: pointer; text-transform: uppercase;
+            border-radius: 4px; pointer-events: auto; box-shadow: 0 4px 0 #440000;
+        }
+
+        #pause-btn {
+            position: absolute; top: 15px; right: 15px; z-index: 10;
+            background: rgba(255,255,255,0.1); color: white; border: 1px solid #555;
+            padding: 5px 12px; cursor: pointer; pointer-events: auto;
+        }
+        canvas { display: block; background: #0a0a0a; }
+
+        .blink-red { animation: blink 0.1s linear 3; }
+        @keyframes blink { 
+            0% { filter: brightness(1); } 
+            50% { filter: brightness(3) sepia(1) hue-rotate(-50deg); } 
+            100% { filter: brightness(1); } 
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <div id="ui">
+        <div class="hp-container"><div id="hp-bar"></div></div>
+        <div id="score-board">Z-KILLS: 0</div>
+        <div id="squad-info">SQUAD SIZE: 1</div>
+        <button id="pause-btn" onclick="togglePause()">PAUSE</button>
+    </div>
+
+    <div id="start-modal" class="modal">
+        <h1 class="game-title">SQUAD<br>SURVIVOR</h1>
+        <p class="game-desc">Semakin banyak pasukanmu, semakin besar serbuan zombie! Jaga formasi dan hancurkan mereka semua.</p>
+        <button class="btn" onclick="initGame()">Mulai Pertahanan</button>
+    </div>
+
+    <div id="pause-modal" class="modal" style="display:none">
+        <h1 style="color:white">PAUSED</h1>
+        <button class="btn" onclick="togglePause()">Continue</button>
+    </div>
+
+    <div id="game-over-modal" class="modal" style="display:none">
+        <h1 class="game-title" style="color:red">MISSION FAILED</h1>
+        <p id="final-score" style="color:white; margin-bottom:20px;"></p>
+        <button class="btn" onclick="initGame()">Restart</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = 450;
+canvas.height = Math.min(window.innerHeight - 20, 800);
+
+let frame, score, isPaused, gameRunning, shakeTime, player, bullets, enemies, gates, keys, particles;
+let animationId;
+
+function initGame() {
+    frame = 0; score = 0; isPaused = false; gameRunning = true; shakeTime = 0;
+    bullets = []; enemies = []; gates = []; keys = {}; particles = [];
+    player = { x: canvas.width/2 - 20, y: canvas.height - 100, w: 40, h: 40, hp: 100, squadCount: 1, fireRate: 20, speed: 7 };
+
+    document.getElementById('start-modal').style.display = 'none';
+    document.getElementById('game-over-modal').style.display = 'none';
+    document.getElementById('pause-modal').style.display = 'none';
+    
+    if (animationId) cancelAnimationFrame(animationId);
+    loop();
+}
+
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+function togglePause() {
+    if (!gameRunning) return;
+    isPaused = !isPaused;
+    document.getElementById('pause-modal').style.display = isPaused ? 'flex' : 'none';
+    if (!isPaused) loop();
+}
+
+function spawnParticle(x, y, color, count = 5, size = 3) {
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            life: 1.0, color, size: Math.random() * size + 1
+        });
+    }
+}
+
+function checkCollision(r1, r2) {
+    return r1.x < r2.x + (r2.w||5) && r1.x + (r1.w||5) > r2.x && r1.y < r2.y + (r2.h||5) && r1.y + (r1.h||5) > r2.y;
+}
+
+function loop() {
+    if (!gameRunning || isPaused) return;
+
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    if (shakeTime > 0) {
+        ctx.save();
+        ctx.translate(Math.random()*12-6, Math.random()*12-6);
+        shakeTime--;
+    }
+
+    if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+    if (keys['ArrowRight'] && player.x < canvas.width - player.w) player.x += player.speed;
+
+    if (frame % player.fireRate === 0) {
+        for(let i=0; i < player.squadCount; i++) {
+            const offset = (i - (player.squadCount-1)/2) * 28;
+            bullets.push({ x: player.x + player.w/2 + offset, y: player.y, w: 4, h: 12 });
+        }
+    }
+
+    bullets.forEach((b, i) => {
+        b.y -= 12;
+        ctx.fillStyle = '#f1c40f';
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        if (b.y < 0) bullets.splice(i, 1);
+    });
+
+    particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.03;
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+        ctx.globalAlpha = 1;
+        if (p.life <= 0) particles.splice(i, 1);
+    });
+
+    // --- LOGIKA DINAMIS: JUMLAH ZOMBIE BERDASARKAN SQUAD ---
+    // Dasar spawn setiap 50 frame. Berkurang 8 frame setiap ada 1 anggota squad tambahan.
+    // Semakin kecil angka 'spawnInterval', semakin cepat zombie muncul.
+    let spawnInterval = Math.max(15, 50 - (player.squadCount * 7)); 
+    
+    if (frame % spawnInterval === 0) {
+        let isSuper = Math.random() > 0.9;
+        enemies.push({ 
+            x: Math.random()*(canvas.width-40), 
+            y: -50, w: isSuper?55:35, h: isSuper?55:35, 
+            hp: isSuper?20:1, maxHp: isSuper?20:1, 
+            s: isSuper?1.6:1, 
+            speed: (isSuper?1.4:2.2) + (score/5000) 
+        });
+    }
+
+    if (frame % 300 === 0) {
+        gates.push({ x: Math.random()*(canvas.width-120), y: -100, w: 120, h: 70, val: Math.floor(Math.random()*7)-2 || 1, hp: 10, maxHp: 10 });
+    }
+
+    enemies.forEach((e, i) => {
+        e.y += e.speed;
+        ctx.fillStyle = e.s > 1 ? '#064e3b' : '#4ade80';
+        ctx.fillRect(e.x, e.y, e.w, e.h);
+        
+        if (checkCollision(player, e) || e.y > canvas.height) {
+            player.hp -= 15;
+            shakeTime = 15;
+            enemies.splice(i, 1);
+            document.getElementById('game-wrapper').classList.add('blink-red');
+            setTimeout(() => document.getElementById('game-wrapper').classList.remove('blink-red'), 300);
+        }
+    });
+
+    gates.forEach((g, i) => {
+        g.y += 1.2;
+        ctx.fillStyle = g.val < 0 ? '#c0392b' : '#27ae60';
+        ctx.fillRect(g.x, g.y, g.w, g.h);
+        ctx.fillStyle = 'white'; ctx.textAlign = 'center'; ctx.font = 'bold 16px sans-serif';
+        ctx.fillText((g.val > 0 ? "+":"") + g.val + " SQUAD", g.x + g.w/2, g.y + 35);
+        ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(g.x+10, g.y+g.h-12, g.w-20, 6);
+        ctx.fillStyle = '#fff'; ctx.fillRect(g.x+10, g.y+g.h-12, (g.hp/g.maxHp)*(g.w-20), 6);
+        if (g.y > canvas.height) gates.splice(i, 1);
+    });
+
+    bullets.forEach((b, bi) => {
+        enemies.forEach((e, ei) => {
+            if (checkCollision(b, e)) {
+                e.hp--;
+                spawnParticle(b.x, b.y, '#ff4500', 2, 2);
+                bullets.splice(bi, 1);
+                if (e.hp <= 0) {
+                    spawnParticle(e.x+e.w/2, e.y+e.h/2, '#4ade80', 12, 4);
+                    enemies.splice(ei, 1); score += 10;
+                }
+            }
+        });
+        gates.forEach((g, gi) => {
+            if (checkCollision(b, g)) {
+                g.hp--;
+                spawnParticle(b.x, b.y, '#ffffff', 2, 2);
+                bullets.splice(bi, 1);
+                if (g.hp <= 0) {
+                    player.squadCount = Math.max(1, Math.min(6, player.squadCount + g.val));
+                    gates.splice(gi, 1);
+                }
+            }
+        });
+    });
+
+    for(let i=0; i < player.squadCount; i++) {
+        const xOffset = (i - (player.squadCount-1)/2) * 50;
+        ctx.fillStyle = '#2980b9'; ctx.fillRect(player.x + xOffset + 10, player.y + 12, 20, 18);
+        ctx.fillStyle = '#f3e5ab'; ctx.fillRect(player.x + xOffset + 12, player.y + 2, 16, 10);
+    }
+
+    if (shakeTime > 0) ctx.restore();
+
+    document.getElementById('hp-bar').style.width = Math.max(0, player.hp) + "%";
+    document.getElementById('score-board').innerText = "KILLS: " + score;
+    document.getElementById('squad-info').innerText = "SQUAD SIZE: " + player.squadCount;
+
+    if (player.hp <= 0) {
+        gameRunning = false;
+        document.getElementById('game-over-modal').style.display = 'flex';
+        document.getElementById('final-score').innerText = "TOTAL KILLS: " + score;
+    }
+
+    frame++;
+    animationId = requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

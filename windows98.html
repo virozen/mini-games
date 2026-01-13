@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ardi Yudanto - Windows 98 Desktop</title>
+    <style>
+        :root {
+            --win-gray: #c0c0c0;
+            --win-blue: #000080;
+            --win-teal: #008080;
+            --border-light: #ffffff;
+            --border-dark: #808080;
+            --border-black: #000000;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--win-teal);
+            font-family: "Tahoma", "Arial", sans-serif;
+            font-size: 12px;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Desktop Area */
+        .desktop {
+            height: calc(100vh - 35px);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-content: flex-start;
+            flex-wrap: wrap;
+            gap: 25px;
+        }
+
+        /* Desktop Icons */
+        .icon {
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            text-shadow: 1px 1px 1px black;
+            text-decoration: none;
+        }
+
+        .icon img {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 4px;
+        }
+
+        .icon span { padding: 2px; }
+
+        .icon:active span, .icon.selected span {
+            background-color: var(--win-blue);
+            outline: 1px dotted white;
+        }
+
+        /* Widget Profil */
+        .profile-widget {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            background: var(--win-gray);
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            box-shadow: 1px 1px 0 var(--border-black);
+        }
+
+        .widget-header {
+            background: linear-gradient(90deg, var(--win-blue), #1084d0);
+            color: white;
+            padding: 3px 8px;
+            font-weight: bold;
+        }
+
+        .widget-body {
+            padding: 15px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .profile-img {
+            width: 80px;
+            height: 80px;
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            object-fit: cover;
+            background: #eee;
+        }
+
+        .profile-info { flex: 1; }
+        .profile-info strong { display: block; margin-bottom: 5px; font-size: 14px; color: #000; }
+        .profile-info p { margin: 0 0 10px 0; font-size: 11px; line-height: 1.3; color: #000; }
+
+        /* Windows Style Button */
+        .win98-btn {
+            background: var(--win-gray);
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            padding: 4px 10px;
+            font-size: 11px;
+            cursor: pointer;
+            outline: none;
+            color: black;
+        }
+
+        .win98-btn:active {
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+            padding: 5px 9px 3px 11px;
+        }
+
+        /* Modal / Window */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        .window {
+            background: var(--win-gray);
+            border: 2px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            box-shadow: 1px 1px 0 var(--border-black);
+            padding: 2px;
+        }
+
+        .title-bar {
+            background: linear-gradient(90deg, var(--win-blue), #1084d0);
+            color: white;
+            padding: 3px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .title-bar-controls button {
+            width: 16px;
+            height: 14px;
+            font-size: 9px;
+            font-weight: bold;
+            line-height: 1;
+            padding: 0;
+            background: var(--win-gray);
+            border: 1px solid;
+            border-color: var(--border-light) var(--border-dark) var(--border-dark) var(--border-light);
+            cursor: pointer;
+        }
+
+        .window-body {
+            padding: 5px;
+            background: white;
+            margin: 2px;
+            border: 2px solid;
+            border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark);
+        }
+
+        /* Specific Sizes for Modals */
+        #games-modal .window-body { width: 400px; height: 250px; overflow-y: auto; }
+        #portfolio-modal .window-body { width: 80vw; height: 70vh; padding: 0; overflow: hidden; }
+        
+        iframe { width: 100%; height: 100%; border: none; }
+
+        .games-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; padding: 10px; }
+        .game-thumb { text-align: center; cursor: pointer; color: black; }
+        .game-thumb img { width: 32px; height: 32px; }
+
+        /* Taskbar */
+        .taskbar {
+            height: 35px;
+            background: var(--win-gray);
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            border-top: 2px solid var(--border-light);
+            display: flex;
+            padding: 3px;
+            gap: 5px;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .start-btn { font-weight: bold; display: flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px; }
+        .system-tray { margin-left: auto; border: 2px solid; border-color: var(--border-dark) var(--border-light) var(--border-light) var(--border-dark); padding: 2px 10px; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+<div class="desktop">
+    <div class="icon" ondblclick="toggleModal('portfolio-modal', true)">
+        <img src="https://win98icons.alexmeub.com/icons/png/directory_open_file_cabinet-0.png" alt="Portfolio">
+        <span>My Portfolio</span>
+    </div>
+
+    <div class="icon" ondblclick="toggleModal('games-modal', true)">
+        <img src="https://win98icons.alexmeub.com/icons/png/directory_open_cabinet_cool-2.png" alt="Games">
+        <span>Games</span>
+    </div>
+
+    <div class="icon">
+        <img src="https://win98icons.alexmeub.com/icons/png/paint_old-0.png" alt="Paint">
+        <span>Paint</span>
+    </div>
+
+    <div class="icon">
+        <img src="https://win98icons.alexmeub.com/icons/png/calculator-0.png" alt="Calc">
+        <span>Calculator</span>
+    </div>
+
+    <a href="https://wa.me/6281578301145" target="_blank" class="icon">
+        <img src="https://win98icons.alexmeub.com/icons/png/network_internet_pcs_installer-0.png" alt="WA">
+        <span>WhatsApp</span>
+    </a>
+
+    <div class="profile-widget">
+        <div class="widget-header">User Profile</div>
+        <div class="widget-body">
+            <img src="https://via.placeholder.com/80" alt="Ardi Yudanto" class="profile-img">
+            <div class="profile-info">
+                <strong>Ardi Yudanto</strong>
+                <p>UI/UX Specialist and AI Enthusiast.</p>
+                <button class="win98-btn">Read more</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="portfolio-modal" class="modal">
+    <div class="window">
+        <div class="title-bar">
+            <div class="title-bar-text">Exploring - My Portfolio (Behance)</div>
+            <div class="title-bar-controls">
+                <button onclick="toggleModal('portfolio-modal', false)">x</button>
+            </div>
+        </div>
+        <div class="window-body">
+            <iframe src="https://www.behance.net/yudantoardi"></iframe>
+        </div>
+    </div>
+</div>
+
+<div id="games-modal" class="modal">
+    <div class="window">
+        <div class="title-bar">
+            <div class="title-bar-text">C:\Games</div>
+            <div class="title-bar-controls">
+                <button onclick="toggleModal('games-modal', false)">x</button>
+            </div>
+        </div>
+        <div class="window-body">
+            <div class="games-grid">
+                <div class="game-thumb"><img src="https://win98icons.alexmeub.com/icons/png/game_solitaire-0.png"><p>Solitaire</p></div>
+                <div class="game-thumb"><img src="https://win98icons.alexmeub.com/icons/png/game_mine_1-0.png"><p>Mines</p></div>
+                <div class="game-thumb"><img src="https://win98icons.alexmeub.com/icons/png/joystick-0.png"><p>Racing</p></div>
+                <div class="game-thumb"><img src="https://win98icons.alexmeub.com/icons/png/game_freecell-0.png"><p>FreeCell</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="taskbar">
+    <button class="win98-btn start-btn">
+        <img src="https://win98icons.alexmeub.com/icons/png/windows-0.png" width="16">
+        Start
+    </button>
+    <div class="system-tray" id="clock">12:00 PM</div>
+</div>
+
+<script>
+    function toggleModal(id, show) {
+        const modal = document.getElementById(id);
+        modal.style.display = show ? 'block' : 'none';
+        
+        // Z-Index Handling sederhana
+        if(show) {
+            document.querySelectorAll('.modal').forEach(m => m.style.zIndex = "1000");
+            modal.style.zIndex = "1001";
+        }
+    }
+
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        document.getElementById('clock').textContent = timeStr;
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Icon selection visual
+    document.querySelectorAll('.icon').forEach(icon => {
+        icon.addEventListener('click', function(e) {
+            document.querySelectorAll('.icon').forEach(i => i.classList.remove('selected'));
+            this.classList.add('selected');
+        });
+    });
+</script>
+
+</body>
+</html>

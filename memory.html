@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Memory Game 3D - Radio Level</title>
+    <title>Memory Game 3D - Victory Edition</title>
     <style>
         :root {
             --primary: #6366f1;
-            --primary-light: #818cf8;
+            --success: #22c55e;
             --danger: #ef4444;
             --bg-body: #f8fafc;
             --card-back: linear-gradient(135deg, #1e293b 0%, #334155 100%);
@@ -27,8 +27,18 @@
             overflow: hidden;
         }
 
-        /* --- MODAL SETUP --- */
-        #setup-modal {
+        /* --- CANVAS PARTICLE --- */
+        #victory-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 200;
+            display: none;
+        }
+
+        /* --- MODAL SETUP & VICTORY --- */
+        .modal-overlay {
             position: fixed;
             inset: 0;
             background: rgba(15, 23, 42, 0.95);
@@ -48,80 +58,52 @@
             max-width: 420px;
             text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* --- CUSTOM RADIO BUTTONS --- */
+        @keyframes popUp {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* --- RADIO LEVEL --- */
         .level-selector {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin: 15px 0 25px 0;
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 10px; margin: 15px 0 25px 0;
         }
-
-        .level-option {
-            position: relative;
-        }
-
-        .level-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            cursor: pointer;
-        }
-
+        .level-option { position: relative; }
+        .level-option input { position: absolute; opacity: 0; }
         .level-label {
-            display: block;
-            padding: 12px 5px;
-            background: #f1f5f9;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: #64748b;
+            display: block; padding: 12px 5px; background: #f1f5f9;
+            border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer;
+            font-weight: 600; font-size: 0.8rem; transition: 0.3s;
         }
-
-        .level-option input[type="radio"]:checked + .level-label {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
-        }
-
-        .level-label span {
-            display: block;
-            font-size: 0.7rem;
-            opacity: 0.8;
-            font-weight: normal;
+        .level-option input:checked + .level-label {
+            background: var(--primary); border-color: var(--primary); color: white;
+            transform: translateY(-3px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
         /* --- PLAYER INPUTS --- */
         .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
         .player-input {
             flex: 1; padding: 12px; border: 2px solid #e2e8f0;
-            border-radius: 12px; font-size: 16px; transition: 0.2s;
+            border-radius: 12px; font-size: 16px; outline: none;
         }
-        .player-input:focus { border-color: var(--primary); outline: none; }
 
-        .btn {
-            cursor: pointer; padding: 14px; border: none; border-radius: 12px;
-            font-weight: bold; transition: 0.3s;
-        }
-        .btn-add { background: #f1f5f9; color: var(--primary); width: 100%; margin-bottom: 20px; border: 2px dashed #cbd5e1; }
-        .btn-start { background: var(--primary); color: white; width: 100%; font-size: 1.1rem; }
+        .btn { cursor: pointer; border: none; border-radius: 12px; font-weight: bold; transition: 0.3s; }
+        .btn-add { background: #f1f5f9; color: var(--primary); width: 100%; padding: 12px; margin-bottom: 20px; border: 2px dashed #cbd5e1; }
+        .btn-start { background: var(--primary); color: white; width: 100%; padding: 15px; font-size: 1.1rem; }
         .btn-danger { background: #fee2e2; color: var(--danger); width: 50px; font-size: 1.2rem; }
 
-        /* --- GAME ENGINE LAYOUT --- */
+        /* --- GAME LAYOUT --- */
         #game-container { display: none; width: 100%; height: 100%; }
         .game-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; }
-        
         .sidebar {
             width: 320px; background: white; padding: 25px;
             border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 15px;
         }
 
-        /* --- GRID & CARDS --- */
+        /* --- CARDS --- */
         .grid { display: grid; gap: 10px; margin: auto; }
         .card {
             width: 18vmin; height: 18vmin; max-width: 85px; max-height: 85px;
@@ -132,67 +114,67 @@
             position: absolute; width: 100%; height: 100%;
             backface-visibility: hidden; display: flex; align-items: center;
             justify-content: center; font-size: 2rem; border-radius: 14px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .card-front { background: var(--card-back); color: white; font-size: 1.5rem; }
         .card-back { background: white; transform: rotateY(180deg); border: 3px solid var(--primary); }
 
-        .turn-box {
-            background: var(--primary); color: white; padding: 18px;
-            border-radius: 16px; text-align: center; font-weight: bold; font-size: 1.1rem;
-        }
-
         .player-card {
             display: flex; justify-content: space-between; padding: 12px 18px;
             border-radius: 12px; background: #f8fafc; margin-bottom: 8px;
-            border: 2px solid transparent; transition: 0.3s;
+            border: 2px solid transparent; transition: 0.4s;
         }
-        .player-card.active { border-color: var(--primary); background: #eff6ff; transform: scale(1.02); }
+        .player-card.active { border-color: var(--primary); background: #eff6ff; transform: scale(1.05); }
 
         /* --- RESPONSIVE --- */
         @media (max-width: 768px) {
             body { flex-direction: column; }
             #game-container { flex-direction: column; }
             .sidebar { width: 100%; height: auto; border-left: none; border-top: 1px solid #e2e8f0; padding: 15px; }
-            .grid.medium .card { width: 14vmin; height: 14vmin; }
-            .grid.hard .card { width: 10vmin; height: 10vmin; font-size: 1.2rem; gap: 5px; }
         }
     </style>
 </head>
 <body>
 
-    <div id="setup-modal">
+    <canvas id="victory-canvas"></canvas>
+
+    <div id="setup-modal" class="modal-overlay">
         <div class="modal-content">
             <h2 style="color: var(--primary); margin: 0 0 10px 0;">🎮 Memory Game</h2>
-            
             <div id="players-list">
                 <div class="input-group">
                     <input type="text" class="player-input" value="Pemain 1">
                     <button class="btn btn-danger" onclick="removePlayer(this)">🗑️</button>
                 </div>
             </div>
-
             <button class="btn btn-add" onclick="addPlayerField()">+ Tambah Pemain</button>
-            
             <div style="text-align: left;">
-                <label style="font-size: 0.8rem; font-weight: bold; color: #64748b; text-transform: uppercase;">Pilih Level</label>
+                <label style="font-size: 0.8rem; font-weight: bold; color: #64748b;">LEVEL</label>
                 <div class="level-selector">
                     <div class="level-option">
-                        <input type="radio" name="game-level" id="easy" value="easy" checked>
-                        <label for="easy" class="level-label">EASY <span>4 x 4</span></label>
+                        <input type="radio" name="lvl" id="easy" value="easy" checked>
+                        <label for="easy" class="level-label">EASY<br>4x4</label>
                     </div>
                     <div class="level-option">
-                        <input type="radio" name="game-level" id="medium" value="medium">
-                        <label for="medium" class="level-label">MEDIUM <span>6 x 6</span></label>
+                        <input type="radio" name="lvl" id="medium" value="medium">
+                        <label for="medium" class="level-label">MEDIUM<br>6x6</label>
                     </div>
                     <div class="level-option">
-                        <input type="radio" name="game-level" id="hard" value="hard">
-                        <label for="hard" class="level-label">HARD <span>8 x 8</span></label>
+                        <input type="radio" name="lvl" id="hard" value="hard">
+                        <label for="hard" class="level-label">HARD<br>8x8</label>
                     </div>
                 </div>
             </div>
-            
             <button class="btn btn-start" onclick="startGame()">Mulai Game 🚀</button>
+        </div>
+    </div>
+
+    <div id="victory-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h1 style="font-size: 3rem; margin: 0;">🏆</h1>
+            <h2 id="winner-name" style="color: var(--primary); margin: 10px 0;">Pemenang!</h2>
+            <div id="final-leaderboard" style="margin: 20px 0; text-align: left;"></div>
+            <button class="btn btn-start" onclick="location.reload()">Main Lagi 🔄</button>
         </div>
     </div>
 
@@ -201,135 +183,136 @@
             <div id="grid" class="grid"></div>
         </div>
         <div class="sidebar">
-            <div class="turn-box" id="turn-display">Siap?</div>
+            <div id="turn-display" style="background:var(--primary); color:white; padding:15px; border-radius:12px; text-align:center; font-weight:bold;">Giliran: -</div>
             <div id="leaderboard"></div>
         </div>
     </div>
 
     <script>
         const emojiSet = ["🍎", "🐶", "🍕", "🎮", "🦄", "⚽", "🍔", "🎸", "💎", "🤖", "🌍", "🔥", "👻", "💡", "🦜", "🍉", "🚁", "🎃", "🎲", "🥨", "🥑", "🧨", "🛸", "🧸", "🪐", "⚡", "🌈", "🎨", "🚗", "🍩", "🦞", "🌊"];
-        
-        let players = [];
-        let currentPlayerIndex = 0;
-        let flippedCards = [];
-        let matchedPairs = 0;
-        let totalPairs = 0;
-        let isProcessing = false;
+        let players = [], currentPlayerIndex = 0, flippedCards = [], matchedPairs = 0, totalPairs = 0, isProcessing = false;
 
         function addPlayerField() {
             const container = document.getElementById('players-list');
             if (container.children.length < 4) {
                 const div = document.createElement('div');
                 div.className = 'input-group';
-                div.innerHTML = `
-                    <input type="text" class="player-input" value="Pemain ${container.children.length + 1}">
-                    <button class="btn btn-danger" onclick="removePlayer(this)">🗑️</button>
-                `;
+                div.innerHTML = `<input type="text" class="player-input" value="Pemain ${container.children.length + 1}"><button class="btn btn-danger" onclick="removePlayer(this)">🗑️</button>`;
                 container.appendChild(div);
             }
         }
 
         function removePlayer(btn) {
-            const container = document.getElementById('players-list');
-            if (container.children.length > 1) btn.parentElement.remove();
+            if (document.getElementById('players-list').children.length > 1) btn.parentElement.remove();
         }
 
         function startGame() {
-            const inputs = document.querySelectorAll('.player-input');
-            players = Array.from(inputs).map(inp => ({
-                name: inp.value.trim() || "Pemain",
-                score: 0,
-                id: Math.random()
-            }));
-
-            // Mengambil nilai dari radio button yang dipilih
-            const level = document.querySelector('input[name="game-level"]:checked').value;
-            const size = level === 'easy' ? 4 : (level === 'medium' ? 6 : 8);
+            players = Array.from(document.querySelectorAll('.player-input')).map(inp => ({ name: inp.value.trim() || "Pemain", score: 0, id: Math.random() }));
+            const lvl = document.querySelector('input[name="lvl"]:checked').value;
+            const size = lvl === 'easy' ? 4 : (lvl === 'medium' ? 6 : 8);
             totalPairs = (size * size) / 2;
-
             document.getElementById('setup-modal').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
-            
-            setupGrid(size, level);
+            setupGrid(size, lvl);
             updateLeaderboard();
             updateTurnDisplay();
         }
 
-        function setupGrid(size, levelClass) {
+        function setupGrid(size, lvl) {
             const grid = document.getElementById('grid');
-            grid.className = `grid ${levelClass}`;
-            grid.innerHTML = '';
             grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-
-            const cards = [...emojiSet.slice(0, totalPairs), ...emojiSet.slice(0, totalPairs)]
-                          .sort(() => Math.random() - 0.5);
-
+            const cards = [...emojiSet.slice(0, totalPairs), ...emojiSet.slice(0, totalPairs)].sort(() => Math.random() - 0.5);
             cards.forEach(emoji => {
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.dataset.emoji = emoji;
-                card.innerHTML = `
-                    <div class="card-face card-front">❓</div>
-                    <div class="card-face card-back">${emoji}</div>
-                `;
-                card.addEventListener('pointerdown', (e) => {
-                    e.preventDefault();
-                    flipCard(card);
-                });
+                card.innerHTML = `<div class="card-face card-front">?</div><div class="card-face card-back">${emoji}</div>`;
+                card.addEventListener('pointerdown', () => flipCard(card));
                 grid.appendChild(card);
             });
         }
 
         function flipCard(card) {
             if (isProcessing || card.classList.contains('flipped') || flippedCards.length >= 2) return;
-
             card.classList.add('flipped');
             flippedCards.push(card);
-
             if (flippedCards.length === 2) {
                 isProcessing = true;
                 const [c1, c2] = flippedCards;
+                const isMatch = c1.dataset.emoji === c2.dataset.emoji;
+                if (isMatch) { players[currentPlayerIndex].score += 5; matchedPairs++; }
                 
-                if (c1.dataset.emoji === c2.dataset.emoji) {
-                    players[currentPlayerIndex].score += 5;
-                    matchedPairs++;
-                    flippedCards = [];
-                    isProcessing = false;
-                    updateLeaderboard();
-                    if (matchedPairs === totalPairs) setTimeout(endGame, 500);
+                if (matchedPairs === totalPairs) {
+                    setTimeout(triggerVictory, 600);
                 } else {
                     setTimeout(() => {
-                        c1.classList.remove('flipped');
-                        c2.classList.remove('flipped');
+                        if (!isMatch) { c1.classList.remove('flipped'); c2.classList.remove('flipped'); }
                         flippedCards = [];
                         currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
                         updateTurnDisplay();
                         updateLeaderboard();
                         isProcessing = false;
-                    }, 800);
+                    }, 1000);
                 }
             }
         }
 
-        function updateTurnDisplay() {
-            document.getElementById('turn-display').innerText = `Turn: ${players[currentPlayerIndex].name}`;
-        }
+        function updateTurnDisplay() { document.getElementById('turn-display').innerText = `👉 Giliran: ${players[currentPlayerIndex].name}`; }
 
         function updateLeaderboard() {
             const board = document.getElementById('leaderboard');
             const sorted = [...players].sort((a,b) => b.score - a.score);
-            board.innerHTML = sorted.map(p => `
-                <div class="player-card ${p.id === players[currentPlayerIndex].id ? 'active' : ''}">
-                    <span>${p.name}</span>
-                    <b style="color:var(--primary)">${p.score} pts</b>
-                </div>
-            `).join('');
+            board.innerHTML = sorted.map(p => `<div class="player-card ${p.id === players[currentPlayerIndex].id ? 'active' : ''}"><span>${p.name}</span><b>${p.score} pts</b></div>`).join('');
         }
 
-        function endGame() {
-            const winner = [...players].sort((a,b) => b.score - a.score)[0];
-            alert(`🏆 CHAMPION!\n\nPemenang: ${winner.name}\nSkor: ${winner.score}`);
-            location.reload();
+        /* --- VICTORY EFFECTS --- */
+        function triggerVictory() {
+            const canvas = document.getElementById('victory-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.style.display = 'block';
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#6366f1', '#22c55e', '#ef4444', '#eab308', '#a855f7'];
+
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    vY: Math.random() * 3 + 2,
+                    vX: Math.random() * 2 - 1,
+                    angle: Math.random() * 360
+                });
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y += p.vY;
+                    p.x += p.vX;
+                    p.angle += 5;
+                    ctx.fillStyle = p.color;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.angle * Math.PI / 180);
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                });
+                if (particles[0].y < canvas.height + 100) requestAnimationFrame(animate);
+            }
+            animate();
+
+            const sorted = [...players].sort((a,b) => b.score - a.score);
+            document.getElementById('winner-name').innerText = `🏆 ${sorted[0].name} Menang!`;
+            document.getElementById('final-leaderboard').innerHTML = sorted.map((p, i) => 
+                `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee;">
+                    <span>${i+1}. ${p.name}</span><b>${p.score} pts</b>
+                </div>`).join('');
+            
+            setTimeout(() => { document.getElementById('victory-modal').style.display = 'flex'; }, 500);
         }
     </script>
 </body>
